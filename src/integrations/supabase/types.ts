@@ -98,6 +98,54 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_partnerships: {
+        Row: {
+          brand_name: string
+          budget: number | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          logo_url: string | null
+          partnership_type: string | null
+          start_date: string | null
+          status: string | null
+          terms: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand_name: string
+          budget?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          logo_url?: string | null
+          partnership_type?: string | null
+          start_date?: string | null
+          status?: string | null
+          terms?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand_name?: string
+          budget?: number | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          logo_url?: string | null
+          partnership_type?: string | null
+          start_date?: string | null
+          status?: string | null
+          terms?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           created_at: string | null
@@ -664,6 +712,48 @@ export type Database = {
           },
         ]
       }
+      reward_rules: {
+        Row: {
+          action_type: string
+          conditions: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_daily_limit: number | null
+          multiplier: number | null
+          name: string
+          points_awarded: number
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          conditions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_daily_limit?: number | null
+          multiplier?: number | null
+          name: string
+          points_awarded?: number
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          conditions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_daily_limit?: number | null
+          multiplier?: number | null
+          name?: string
+          points_awarded?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           created_at: string | null
@@ -688,6 +778,59 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          resolved_at: string | null
+          restaurant_id: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          restaurant_id?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          restaurant_id?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       threads: {
         Row: {
           created_at: string | null
@@ -708,6 +851,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      ticket_sales: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          quantity: number | null
+          status: string | null
+          ticket_type: string | null
+          total_amount: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          quantity?: number | null
+          status?: string | null
+          ticket_type?: string | null
+          total_amount: number
+          unit_price: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          quantity?: number | null
+          status?: string | null
+          ticket_type?: string | null
+          total_amount?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_sales_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
