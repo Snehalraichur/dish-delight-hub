@@ -25,9 +25,23 @@ import UserProfile from "./pages/user/UserProfile";
 import Notifications from "./pages/user/Notifications";
 import Events from "./pages/user/Events";
 
-// Restaurant & Admin Pages
+// Restaurant Pages
 import RestaurantDashboard from "./pages/restaurant/Dashboard";
+import DealManagement from "./pages/restaurant/DealManagement";
+import UGCManagement from "./pages/restaurant/UGCManagement";
+import SubscriptionPlans from "./pages/restaurant/SubscriptionPlans";
+import RestaurantCatering from "./pages/restaurant/Catering";
+import BoostAds from "./pages/restaurant/BoostAds";
+
+// Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import RestaurantManagement from "./pages/admin/RestaurantManagement";
+import ContentModeration from "./pages/admin/ContentModeration";
+import CampaignManagement from "./pages/admin/CampaignManagement";
+import AdsBoostEngine from "./pages/admin/AdsBoostEngine";
+import EventsCatering from "./pages/admin/EventsCatering";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,10 +75,21 @@ const App = () => (
             <Route path="/events" element={<Events />} />
             
             {/* Restaurant Routes */}
-            <Route path="/restaurant/*" element={<RestaurantDashboard />} />
+            <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+            <Route path="/restaurant/deals" element={<DealManagement />} />
+            <Route path="/restaurant/content" element={<UGCManagement />} />
+            <Route path="/restaurant/subscription" element={<SubscriptionPlans />} />
+            <Route path="/restaurant/catering" element={<RestaurantCatering />} />
+            <Route path="/restaurant/boost" element={<BoostAds />} />
             
             {/* Admin Routes */}
-            <Route path="/admin/*" element={<AdminDashboard />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/restaurants" element={<RestaurantManagement />} />
+            <Route path="/admin/content" element={<ContentModeration />} />
+            <Route path="/admin/campaigns" element={<CampaignManagement />} />
+            <Route path="/admin/ads" element={<AdsBoostEngine />} />
+            <Route path="/admin/events" element={<EventsCatering />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
