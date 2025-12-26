@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, Plus, MapPin, Star, Clock, Tag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { StreakTracker, AutoDealTag, DealCounter, QRRedemptionModal } from '@/components/gamification';
+import { toast } from 'sonner';
 
 // Mock data
 const stories = [
@@ -25,9 +27,13 @@ const posts = [
     rating: 4.8,
     likes: 1234,
     comments: 89,
-    deal: { discount: '25% OFF', expires: '2h left' },
+    deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45 },
     isLiked: false,
     isSaved: false,
+    friendsClaimed: [
+      { id: '1', name: 'Sarah', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
+      { id: '2', name: 'John', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
+    ],
   },
   {
     id: '2',
@@ -38,9 +44,15 @@ const posts = [
     rating: 4.9,
     likes: 2456,
     comments: 156,
-    deal: { discount: '15% OFF', expires: '5h left' },
+    deal: { id: 'deal2', discount: '15% OFF', expires: '5h left', expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000), claimCount: 89 },
     isLiked: true,
     isSaved: true,
+    friendsClaimed: [
+      { id: '3', name: 'Emily', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily' },
+      { id: '4', name: 'Mike', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
+      { id: '5', name: 'Lisa', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa' },
+      { id: '6', name: 'Tom', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom' },
+    ],
   },
   {
     id: '3',
@@ -54,11 +66,22 @@ const posts = [
     deal: null,
     isLiked: false,
     isSaved: false,
+    friendsClaimed: [],
   },
 ];
 
+const userStreak = {
+  currentStreak: 12,
+  longestStreak: 21,
+  lastPostDate: '2 hours ago',
+  streakPoints: 120,
+  isAtRisk: false,
+};
+
 export default function HomeFeed() {
   const [feedPosts, setFeedPosts] = useState(posts);
+  const [selectedDeal, setSelectedDeal] = useState<typeof posts[0]['deal'] | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const toggleLike = (postId: string) => {
     setFeedPosts(prev =>
@@ -80,9 +103,25 @@ export default function HomeFeed() {
     );
   };
 
+  const handleClaimDeal = (deal: typeof posts[0]['deal'], restaurant: string, location: string) => {
+    if (!deal) return;
+    setSelectedDeal({ ...deal, restaurant, location } as any);
+    setShowQRModal(true);
+    toast.success('Deal claimed! Show QR to redeem.');
+  };
+
   return (
     <UserLayout>
       <div className="max-w-2xl mx-auto">
+        {/* Streak Tracker - Compact on mobile */}
+        <div className="px-4 py-3">
+          <StreakTracker
+            {...userStreak}
+            compact
+            onClick={() => toast.info('Streak leaderboard coming soon!')}
+          />
+        </div>
+
         {/* Stories */}
         <div className="px-4 py-4 overflow-x-auto scrollbar-hide">
           <div className="flex gap-4">
@@ -150,7 +189,7 @@ export default function HomeFeed() {
                 </div>
               </div>
 
-              {/* Image */}
+              {/* Image with Auto Deal Tag */}
               <div className="relative aspect-square">
                 <img
                   src={post.image}
@@ -158,14 +197,13 @@ export default function HomeFeed() {
                   className="w-full h-full object-cover"
                 />
                 {post.deal && (
-                  <div className="absolute top-4 right-4 bg-coral text-primary-foreground px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
-                    <Tag className="w-4 h-4" />
-                    <span className="font-bold text-sm">{post.deal.discount}</span>
-                    <span className="text-xs opacity-80 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {post.deal.expires}
-                    </span>
-                  </div>
+                  <AutoDealTag
+                    dealId={post.deal.id}
+                    discount={post.deal.discount}
+                    restaurantName={post.restaurant}
+                    claimCount={post.deal.claimCount}
+                    onClick={() => handleClaimDeal(post.deal, post.restaurant, post.location)}
+                  />
                 )}
               </div>
 
@@ -214,13 +252,35 @@ export default function HomeFeed() {
                 <button className="text-sm text-muted-foreground mt-1">
                   View all {post.comments} comments
                 </button>
+
+                {/* Social Validation - Friends who claimed */}
+                {post.deal && post.friendsClaimed.length > 0 && (
+                  <div className="mt-3">
+                    <DealCounter
+                      dealId={post.deal.id}
+                      totalClaims={post.deal.claimCount}
+                      friendsClaimed={post.friendsClaimed}
+                      onClick={() => toast.info('Friends list coming soon!')}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Deal CTA */}
               {post.deal && (
                 <div className="px-4 pb-4">
-                  <Button variant="coral" size="sm" className="w-full">
+                  <Button 
+                    variant="gradient" 
+                    size="lg" 
+                    className="w-full"
+                    onClick={() => handleClaimDeal(post.deal, post.restaurant, post.location)}
+                  >
+                    <Tag className="w-5 h-5 mr-2" />
                     Claim Deal - {post.deal.discount}
+                    <span className="ml-2 text-xs opacity-80 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {post.deal.expires}
+                    </span>
                   </Button>
                 </div>
               )}
@@ -228,6 +288,28 @@ export default function HomeFeed() {
           ))}
         </div>
       </div>
+
+      {/* QR Redemption Modal */}
+      {selectedDeal && (
+        <QRRedemptionModal
+          isOpen={showQRModal}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedDeal(null);
+          }}
+          deal={{
+            id: selectedDeal.id,
+            name: 'Special Discount',
+            discount: selectedDeal.discount,
+            restaurant: (selectedDeal as any).restaurant || 'Restaurant',
+            location: (selectedDeal as any).location || 'Location',
+            expiresAt: selectedDeal.expiresAt,
+          }}
+          onRedeem={() => {
+            toast.success('Points added to your account!');
+          }}
+        />
+      )}
     </UserLayout>
   );
 }
