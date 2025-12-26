@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Grid, Bookmark, Heart, MapPin, Calendar, Award, Edit2, Share2, MoreHorizontal, Flame } from 'lucide-react';
+import { Settings, Grid, Bookmark, Heart, MapPin, Calendar, Award, Edit2, Share2, MoreHorizontal, Flame, Crown, Trophy, Zap } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { StreakTracker, PointsBadgeCard, TierProgressBar } from '@/components/gamification';
 
 const userProfile = {
   name: 'John Doe',
@@ -31,8 +32,52 @@ const userPosts = [
 
 const savedPosts = userPosts.slice(0, 4);
 
+// User gamification data
+const userGamification = {
+  streak: {
+    currentStreak: 12,
+    longestStreak: 18,
+    streakPoints: 240,
+    lastPostDate: new Date().toISOString(),
+    isAtRisk: false,
+  },
+  pointsBadge: {
+    totalPoints: 2450,
+    tier: 'silver' as const,
+    pointsToNextTier: 2550,
+    nextTierRequirement: 5000,
+    badges: [
+      { id: 'first_post', name: 'First Post', icon: '🎉', earned: true, description: 'Posted your first food photo' },
+      { id: 'streak_master', name: 'Streak Master', icon: '🔥', earned: true, description: 'Maintained a 7-day streak' },
+      { id: 'deal_hunter', name: 'Deal Hunter', icon: '💰', earned: true, description: 'Redeemed 10 deals' },
+      { id: 'social_butterfly', name: 'Social Butterfly', icon: '🦋', earned: true, description: 'Made 50 comments' },
+      { id: 'influencer', name: 'Influencer', icon: '⭐', earned: true, description: 'Reached 1000 followers' },
+      { id: 'explorer', name: 'Explorer', icon: '🗺️', earned: false, description: 'Visit 20 different restaurants' },
+      { id: 'food_critic', name: 'Food Critic', icon: '📝', earned: false, description: 'Write 50 reviews' },
+    ],
+    recentActivity: [
+      { action: 'Posted at The Golden Fork', points: 50, timestamp: '2024-12-24' },
+      { action: 'Your post was liked', points: 5, timestamp: '2024-12-24' },
+      { action: 'Redeemed 25% off deal', points: 100, timestamp: '2024-12-23' },
+    ],
+  },
+  tierProgress: {
+    currentTier: 'silver' as const,
+    currentPoints: 2450,
+    visits: 28,
+    redemptions: 15,
+    perks: [
+      { name: '10% off all orders', unlocked: true },
+      { name: 'Priority support', unlocked: true },
+      { name: 'Early access to deals', unlocked: true },
+      { name: 'Free delivery (Gold tier)', unlocked: false },
+    ],
+  },
+};
+
 export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('posts');
+  const [showGamificationDetails, setShowGamificationDetails] = useState(false);
 
   return (
     <UserLayout>
@@ -50,6 +95,11 @@ export default function UserProfile() {
             <div>
               <h1 className="text-xl font-bold font-display text-foreground">{userProfile.name}</h1>
               <p className="text-muted-foreground">{userProfile.username}</p>
+              {/* Tier Badge */}
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-lg">🥈</span>
+                <span className="text-sm font-medium text-secondary">{userProfile.tier} Member</span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -106,34 +156,56 @@ export default function UserProfile() {
           </Button>
         </motion.div>
 
-        {/* Gamification Cards */}
+        {/* Streak Tracker - Collapsible on Mobile */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="grid grid-cols-3 gap-3 mb-6"
+          className="mb-6"
         >
-          <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-              <Flame className="w-5 h-5 text-primary" />
-            </div>
-            <p className="text-lg font-bold text-foreground">{userProfile.streak}</p>
-            <p className="text-xs text-muted-foreground">Day Streak</p>
-          </div>
-          <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <div className="w-10 h-10 bg-secondary/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-              <Award className="w-5 h-5 text-secondary" />
-            </div>
-            <p className="text-lg font-bold text-foreground">{userProfile.points}</p>
-            <p className="text-xs text-muted-foreground">Points</p>
-          </div>
-          <div className="bg-card rounded-2xl p-4 border border-border text-center">
-            <div className="w-10 h-10 bg-accent/30 rounded-xl flex items-center justify-center mx-auto mb-2">
-              <span className="text-lg">🥈</span>
-            </div>
-            <p className="text-lg font-bold text-foreground">{userProfile.tier}</p>
-            <p className="text-xs text-muted-foreground">Tier</p>
-          </div>
+          <StreakTracker
+            currentStreak={userGamification.streak.currentStreak}
+            longestStreak={userGamification.streak.longestStreak}
+            streakPoints={userGamification.streak.streakPoints}
+            lastPostDate={userGamification.streak.lastPostDate}
+            isAtRisk={userGamification.streak.isAtRisk}
+          />
+        </motion.div>
+
+        {/* Tier Progress */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
+          <TierProgressBar
+            currentTier={userGamification.tierProgress.currentTier}
+            currentPoints={userGamification.tierProgress.currentPoints}
+            visits={userGamification.tierProgress.visits}
+            redemptions={userGamification.tierProgress.redemptions}
+            perks={userGamification.tierProgress.perks}
+            compact
+          />
+        </motion.div>
+
+        {/* Points & Badges Card - Collapsible Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mb-6"
+        >
+          <PointsBadgeCard
+            totalPoints={userGamification.pointsBadge.totalPoints}
+            tier={userGamification.pointsBadge.tier}
+            pointsToNextTier={userGamification.pointsBadge.pointsToNextTier}
+            nextTierRequirement={userGamification.pointsBadge.nextTierRequirement}
+            badges={userGamification.pointsBadge.badges}
+            recentActivity={userGamification.pointsBadge.recentActivity}
+            compact={!showGamificationDetails}
+            onClick={() => setShowGamificationDetails(!showGamificationDetails)}
+          />
         </motion.div>
 
         {/* Tabs */}
