@@ -11,6 +11,9 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import RestaurantSignup from "./pages/auth/RestaurantSignup";
 import HomeFeed from "./pages/user/HomeFeed";
+import DealWallet from "./pages/user/DealWallet";
+import Search from "./pages/user/Search";
+import Messages from "./pages/user/Messages";
 import RestaurantDashboard from "./pages/restaurant/Dashboard";
 import AdminDashboard from "./pages/admin/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -33,33 +36,19 @@ const App = () => (
             
             {/* User Routes */}
             <Route path="/feed" element={<HomeFeed />} />
-            <Route path="/search" element={<HomeFeed />} />
-            <Route path="/wallet" element={<HomeFeed />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/wallet" element={<DealWallet />} />
             <Route path="/notifications" element={<HomeFeed />} />
             <Route path="/profile" element={<HomeFeed />} />
+            <Route path="/messages" element={<Messages />} />
             
             {/* Restaurant Routes */}
             <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/deals" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/content" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/analytics" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/messages" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/reviews" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/menu" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/staff" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/settings" element={<RestaurantDashboard />} />
+            <Route path="/restaurant/*" element={<RestaurantDashboard />} />
             
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminDashboard />} />
-            <Route path="/admin/restaurants" element={<AdminDashboard />} />
-            <Route path="/admin/content" element={<AdminDashboard />} />
-            <Route path="/admin/fraud" element={<AdminDashboard />} />
-            <Route path="/admin/campaigns" element={<AdminDashboard />} />
-            <Route path="/admin/subscriptions" element={<AdminDashboard />} />
-            <Route path="/admin/events" element={<AdminDashboard />} />
-            <Route path="/admin/notifications" element={<AdminDashboard />} />
-            <Route path="/admin/settings" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminDashboard />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
