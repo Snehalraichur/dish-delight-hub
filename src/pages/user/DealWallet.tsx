@@ -1,12 +1,29 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { QrCode, Clock, Tag, MapPin, ChevronRight, Ticket, Gift, Star } from 'lucide-react';
+import { QrCode, Clock, Tag, MapPin, ChevronRight, Ticket, Gift, Star, Users } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { QRRedemptionModal, DealCounter, TierProgressBar } from '@/components/gamification';
 
-const claimedDeals = [
+interface Deal {
+  id: string;
+  restaurant: string;
+  deal: string;
+  code: string;
+  expiresIn: string;
+  image: string;
+  status: string;
+  discountPercent: number;
+  friendsClaimed: { id: string; name: string; avatar?: string }[];
+  totalClaims: number;
+  restaurantId: string;
+  location: string;
+  expiresAt: Date;
+}
+
+const claimedDeals: Deal[] = [
   {
     id: '1',
     restaurant: 'The Golden Fork',
@@ -15,6 +32,16 @@ const claimedDeals = [
     expiresIn: '2h 30m',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop',
     status: 'active',
+    discountPercent: 25,
+    friendsClaimed: [
+      { id: 'f1', name: 'Sarah', avatar: 'https://i.pravatar.cc/40?img=1' },
+      { id: 'f2', name: 'Mike', avatar: 'https://i.pravatar.cc/40?img=2' },
+      { id: 'f3', name: 'Alex', avatar: 'https://i.pravatar.cc/40?img=3' },
+    ],
+    totalClaims: 12,
+    restaurantId: 'rest-1',
+    location: '123 Main St',
+    expiresAt: new Date(Date.now() + 2.5 * 60 * 60 * 1000),
   },
   {
     id: '2',
@@ -24,6 +51,15 @@ const claimedDeals = [
     expiresIn: '5h 15m',
     image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200&h=200&fit=crop',
     status: 'active',
+    discountPercent: 100,
+    friendsClaimed: [
+      { id: 'f4', name: 'Emma' },
+      { id: 'f5', name: 'John' },
+    ],
+    totalClaims: 8,
+    restaurantId: 'rest-2',
+    location: '456 Oak Ave',
+    expiresAt: new Date(Date.now() + 5.25 * 60 * 60 * 1000),
   },
   {
     id: '3',
@@ -33,6 +69,12 @@ const claimedDeals = [
     expiresIn: '1d 4h',
     image: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=200&h=200&fit=crop',
     status: 'active',
+    discountPercent: 15,
+    friendsClaimed: [],
+    totalClaims: 24,
+    restaurantId: 'rest-3',
+    location: '789 Elm St',
+    expiresAt: new Date(Date.now() + 28 * 60 * 60 * 1000),
   },
 ];
 
@@ -53,11 +95,33 @@ const redeemedDeals = [
   },
 ];
 
-const loyaltyPoints = 2450;
-const nextTierPoints = 5000;
+const userTier = {
+  currentTier: 'silver' as const,
+  currentPoints: 2450,
+  visits: 28,
+  redemptions: 15,
+  perks: [
+    { name: '10% off all orders', unlocked: true },
+    { name: 'Priority support', unlocked: true },
+    { name: 'Early access to deals', unlocked: true },
+    { name: 'Free delivery (Gold)', unlocked: false },
+  ],
+};
 
 export default function DealWallet() {
   const [selectedDeal, setSelectedDeal] = useState<string | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+
+  const handleRedeemClick = (deal: Deal) => {
+    setActiveDeal(deal);
+    setQrModalOpen(true);
+  };
+
+  const handleRedemptionComplete = () => {
+    setQrModalOpen(false);
+    setActiveDeal(null);
+  };
 
   return (
     <UserLayout>
@@ -72,40 +136,43 @@ export default function DealWallet() {
           <p className="text-muted-foreground">Your claimed deals and rewards</p>
         </motion.div>
 
-        {/* Points Card */}
+        {/* Tier Progress Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <TierProgressBar
+            currentTier={userTier.currentTier}
+            currentPoints={userTier.currentPoints}
+            visits={userTier.visits}
+            redemptions={userTier.redemptions}
+            perks={userTier.perks}
+            compact
+          />
+        </motion.div>
+
+        {/* Points Summary Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
           className="gradient-sunset rounded-3xl p-6 text-primary-foreground mb-6 shadow-xl"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-primary-foreground/20 rounded-2xl flex items-center justify-center">
                 <Star className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-sm opacity-80">Reward Points</p>
-                <p className="text-3xl font-bold">{loyaltyPoints.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{userTier.currentPoints.toLocaleString()}</p>
               </div>
             </div>
             <Button variant="secondary" size="sm" className="bg-primary-foreground/20 text-primary-foreground border-0 hover:bg-primary-foreground/30">
               Redeem
             </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="opacity-80">Progress to Gold Tier</span>
-              <span className="font-medium">{loyaltyPoints}/{nextTierPoints}</span>
-            </div>
-            <div className="h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary-foreground rounded-full transition-all duration-500"
-                style={{ width: `${(loyaltyPoints / nextTierPoints) * 100}%` }}
-              />
-            </div>
-            <p className="text-xs opacity-70">{nextTierPoints - loyaltyPoints} points until Gold tier</p>
           </div>
         </motion.div>
 
@@ -136,17 +203,31 @@ export default function DealWallet() {
               >
                 <div className="p-4">
                   <div className="flex gap-4">
-                    <img
-                      src={deal.image}
-                      alt={deal.restaurant}
-                      className="w-20 h-20 rounded-xl object-cover"
-                    />
+                    <div className="relative">
+                      <img
+                        src={deal.image}
+                        alt={deal.restaurant}
+                        className="w-20 h-20 rounded-xl object-cover"
+                      />
+                      {/* Discount Badge */}
+                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
+                        {deal.discountPercent}% OFF
+                      </div>
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground">{deal.restaurant}</h3>
                       <p className="text-lg font-bold text-primary">{deal.deal}</p>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4 text-secondary" />
-                        <span>Expires in {deal.expiresIn}</span>
+                      <div className="flex items-center gap-4 mt-2 flex-wrap">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4 text-secondary" />
+                          <span>Expires in {deal.expiresIn}</span>
+                        </div>
+                        {/* Friend Counter */}
+                        <DealCounter 
+                          dealId={deal.id} 
+                          totalClaims={deal.totalClaims} 
+                          friendsClaimed={deal.friendsClaimed} 
+                        />
                       </div>
                     </div>
                     <button
@@ -176,7 +257,11 @@ export default function DealWallet() {
                         <div className="bg-muted rounded-xl px-4 py-2 font-mono font-bold text-lg text-foreground">
                           {deal.code}
                         </div>
-                        <Button variant="hero" className="w-full mt-4 rounded-xl">
+                        <Button 
+                          variant="hero" 
+                          className="w-full mt-4 rounded-xl"
+                          onClick={() => handleRedeemClick(deal)}
+                        >
                           Mark as Redeemed
                         </Button>
                       </div>
@@ -218,6 +303,23 @@ export default function DealWallet() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* QR Redemption Modal */}
+      {activeDeal && (
+        <QRRedemptionModal
+          isOpen={qrModalOpen}
+          onClose={() => setQrModalOpen(false)}
+          deal={{
+            id: activeDeal.id,
+            name: activeDeal.deal,
+            discount: `${activeDeal.discountPercent}% OFF`,
+            restaurant: activeDeal.restaurant,
+            location: activeDeal.location,
+            expiresAt: activeDeal.expiresAt,
+          }}
+          onRedeem={handleRedemptionComplete}
+        />
+      )}
     </UserLayout>
   );
 }
