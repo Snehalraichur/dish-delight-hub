@@ -71,10 +71,11 @@ export default function Signup() {
     
     try {
       await signup(email, password, name, 'user');
-      toast.success('Account created! Welcome to SnapDish!');
-      navigate('/feed');
-    } catch (error) {
-      toast.error('Something went wrong');
+      toast.success('Account created! Please check your email to verify your account.');
+      navigate('/verify-email');
+    } catch (error: any) {
+      const message = error?.message || 'Something went wrong';
+      toast.error(message);
     }
   };
 
