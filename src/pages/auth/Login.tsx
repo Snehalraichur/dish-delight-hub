@@ -35,8 +35,9 @@ export default function Login() {
         default:
           navigate('/feed');
       }
-    } catch (error) {
-      toast.error('Invalid credentials');
+    } catch (error: any) {
+      const message = error?.message || 'Invalid credentials';
+      toast.error(message);
     }
   };
 
