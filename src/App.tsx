@@ -41,6 +41,11 @@ import ContentModeration from "./pages/admin/ContentModeration";
 import CampaignManagement from "./pages/admin/CampaignManagement";
 import AdsBoostEngine from "./pages/admin/AdsBoostEngine";
 import EventsCatering from "./pages/admin/EventsCatering";
+import FraudPrevention from "./pages/admin/FraudPrevention";
+import RestaurantOnboarding from "./pages/admin/RestaurantOnboarding";
+import UserIncentiveEngine from "./pages/admin/UserIncentiveEngine";
+import BrandPartnerships from "./pages/admin/BrandPartnerships";
+import SupportConsole from "./pages/admin/SupportConsole";
 
 import NotFound from "./pages/NotFound";
 
@@ -90,6 +95,11 @@ const App = () => (
             <Route path="/admin/campaigns" element={<CampaignManagement />} />
             <Route path="/admin/ads" element={<AdsBoostEngine />} />
             <Route path="/admin/events" element={<EventsCatering />} />
+            <Route path="/admin/fraud" element={<FraudPrevention />} />
+            <Route path="/admin/onboarding" element={<RestaurantOnboarding />} />
+            <Route path="/admin/incentives" element={<UserIncentiveEngine />} />
+            <Route path="/admin/partnerships" element={<BrandPartnerships />} />
+            <Route path="/admin/support" element={<SupportConsole />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
