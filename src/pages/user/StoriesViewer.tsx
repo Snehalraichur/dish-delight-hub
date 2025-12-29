@@ -3,22 +3,49 @@ import { useNavigate, useParams } from "react-router-dom";
 import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const PROGRESS_INTERVAL = 50; // Update every 50ms for smooth animation
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger navigation
 
+interface StoryUser {
+  id: string;
+  name: string;
+  avatar: string;
+  isRestaurant: boolean;
+}
+
+interface Story {
+  id: string;
+  userId: string;
+  user: StoryUser;
+  media: string;
+  timestamp: string;
+  deal: string | null;
+  dealId?: string;
+}
+
+interface GroupedStories {
+  userId: string;
+  user: StoryUser;
+  stories: Story[];
+}
+
 const StoriesViewer = () => {
   const navigate = useNavigate();
-  const { userId } = useParams();
+  const { userId: initialUserId } = useParams();
+  
+  const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [message, setMessage] = useState("");
   
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null);
@@ -39,64 +66,137 @@ const StoriesViewer = () => {
     },
   });
 
-  // Fallback mock data if no stories in DB
-  const displayStories = stories.length > 0 ? stories.map(s => ({
-    id: s.id,
-    user: { 
-      name: `User ${s.user_id.slice(0, 4)}`, 
-      avatar: "/placeholder.svg", 
-      isRestaurant: false 
-    },
-    media: s.media_url,
-    timestamp: formatDistanceToNow(new Date(s.created_at || ''), { addSuffix: true }),
-    deal: null
-  })) : [
-    {
-      id: '1',
-      user: { name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
-      media: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
-      timestamp: "2h ago",
-      deal: "20% off all pasta dishes today!"
-    },
-    {
-      id: '2',
-      user: { name: "Taco Fiesta", avatar: "/placeholder.svg", isRestaurant: true },
-      media: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800",
-      timestamp: "4h ago",
-      deal: "Buy 2 tacos, get 1 free!"
-    },
-    {
-      id: '3',
-      user: { name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
-      media: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
-      timestamp: "6h ago",
+  // Transform and group stories by user
+  const groupedStories: GroupedStories[] = (() => {
+    const storyList: Story[] = stories.length > 0 ? stories.map(s => ({
+      id: s.id,
+      userId: s.user_id,
+      user: { 
+        id: s.user_id,
+        name: `User ${s.user_id.slice(0, 4)}`, 
+        avatar: "/placeholder.svg", 
+        isRestaurant: false 
+      },
+      media: s.media_url,
+      timestamp: formatDistanceToNow(new Date(s.created_at || ''), { addSuffix: true }),
       deal: null
-    }
-  ];
+    })) : [
+      {
+        id: '1',
+        userId: 'bella-italia',
+        user: { id: 'bella-italia', name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
+        media: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
+        timestamp: "2h ago",
+        deal: "20% off all pasta dishes today!",
+        dealId: 'deal-1'
+      },
+      {
+        id: '2',
+        userId: 'bella-italia',
+        user: { id: 'bella-italia', name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
+        media: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800",
+        timestamp: "2h ago",
+        deal: "Free dessert with any main course!",
+        dealId: 'deal-2'
+      },
+      {
+        id: '3',
+        userId: 'taco-fiesta',
+        user: { id: 'taco-fiesta', name: "Taco Fiesta", avatar: "/placeholder.svg", isRestaurant: true },
+        media: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800",
+        timestamp: "4h ago",
+        deal: "Buy 2 tacos, get 1 free!",
+        dealId: 'deal-3'
+      },
+      {
+        id: '4',
+        userId: 'sarah-chen',
+        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
+        media: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+        timestamp: "6h ago",
+        deal: null
+      },
+      {
+        id: '5',
+        userId: 'sarah-chen',
+        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
+        media: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800",
+        timestamp: "6h ago",
+        deal: null
+      }
+    ];
 
-  const currentStory = displayStories[currentStoryIndex];
+    // Group by userId
+    const groups: Record<string, GroupedStories> = {};
+    storyList.forEach(story => {
+      if (!groups[story.userId]) {
+        groups[story.userId] = {
+          userId: story.userId,
+          user: story.user,
+          stories: []
+        };
+      }
+      groups[story.userId].stories.push(story);
+    });
+
+    return Object.values(groups);
+  })();
+
+  // Find initial user index if userId param is provided
+  useEffect(() => {
+    if (initialUserId && groupedStories.length > 0) {
+      const userIdx = groupedStories.findIndex(g => g.userId === initialUserId);
+      if (userIdx !== -1) {
+        setCurrentUserIndex(userIdx);
+        setCurrentStoryIndex(0);
+      }
+    }
+  }, [initialUserId, groupedStories.length]);
+
+  const currentUserStories = groupedStories[currentUserIndex];
+  const currentStory = currentUserStories?.stories[currentStoryIndex];
+  const totalStoriesForUser = currentUserStories?.stories.length || 0;
 
   const goToFeed = useCallback(() => {
     navigate('/feed');
   }, [navigate]);
 
   const nextStory = useCallback(() => {
-    if (currentStoryIndex < displayStories.length - 1) {
+    // Reset like state for new story
+    setIsLiked(false);
+    
+    if (currentStoryIndex < totalStoriesForUser - 1) {
+      // More stories from current user
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
+    } else if (currentUserIndex < groupedStories.length - 1) {
+      // Move to next user's stories
+      setCurrentUserIndex(prev => prev + 1);
+      setCurrentStoryIndex(0);
+      setProgress(0);
     } else {
-      // Last story finished - go back to feed
+      // All stories finished - go back to feed
       setHasEnded(true);
       goToFeed();
     }
-  }, [currentStoryIndex, displayStories.length, goToFeed]);
+  }, [currentStoryIndex, totalStoriesForUser, currentUserIndex, groupedStories.length, goToFeed]);
 
   const prevStory = useCallback(() => {
+    // Reset like state for new story
+    setIsLiked(false);
+    
     if (currentStoryIndex > 0) {
+      // Previous story from current user
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
+    } else if (currentUserIndex > 0) {
+      // Go to previous user's last story
+      setCurrentUserIndex(prev => prev - 1);
+      const prevUserStories = groupedStories[currentUserIndex - 1];
+      setCurrentStoryIndex(prevUserStories.stories.length - 1);
+      setProgress(0);
     }
-  }, [currentStoryIndex]);
+  }, [currentStoryIndex, currentUserIndex, groupedStories]);
 
   // Swipe handlers
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -150,10 +250,41 @@ const StoriesViewer = () => {
   // Reset progress when story changes
   useEffect(() => {
     setProgress(0);
-  }, [currentStoryIndex]);
+  }, [currentStoryIndex, currentUserIndex]);
 
   const togglePause = () => {
     setIsPaused(prev => !prev);
+  };
+
+  const handleClaimDeal = () => {
+    if (currentStory?.dealId) {
+      navigate(`/deal-redemption/${currentStory.dealId}`);
+    } else {
+      toast.success("Deal claimed! Check your wallet.");
+      navigate('/deal-wallet');
+    }
+  };
+
+  const handleLike = () => {
+    setIsLiked(prev => !prev);
+    if (!isLiked) {
+      toast.success("Story liked!");
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      toast.success(`Message sent to ${currentUserStories?.user.name}`);
+      setMessage("");
+    } else {
+      toast.info("Type a message first");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
   };
 
   if (isLoading) {
@@ -186,9 +317,9 @@ const StoriesViewer = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Progress Bars */}
+        {/* Progress Bars - Only for current user's stories */}
         <div className="absolute top-4 left-4 right-4 z-10 flex gap-1">
-          {displayStories.map((_, index) => (
+          {currentUserStories?.stories.map((_, index) => (
             <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-white transition-all duration-75 ease-linear"
@@ -197,6 +328,16 @@ const StoriesViewer = () => {
                 }}
               />
             </div>
+          ))}
+        </div>
+
+        {/* User indicators showing all users */}
+        <div className="absolute top-2 left-4 right-4 z-10 flex justify-center gap-1">
+          {groupedStories.map((_, index) => (
+            <div 
+              key={index} 
+              className={`w-2 h-2 rounded-full ${index === currentUserIndex ? 'bg-primary' : index < currentUserIndex ? 'bg-white' : 'bg-white/30'}`}
+            />
           ))}
         </div>
 
@@ -254,7 +395,7 @@ const StoriesViewer = () => {
         />
 
         {/* Navigation Arrows (visible on desktop) */}
-        {currentStoryIndex > 0 && (
+        {(currentStoryIndex > 0 || currentUserIndex > 0) && (
           <Button
             variant="ghost"
             size="icon"
@@ -264,7 +405,7 @@ const StoriesViewer = () => {
             <ChevronLeft className="h-8 w-8" />
           </Button>
         )}
-        {currentStoryIndex < displayStories.length - 1 && (
+        {(currentStoryIndex < totalStoriesForUser - 1 || currentUserIndex < groupedStories.length - 1) && (
           <Button
             variant="ghost"
             size="icon"
@@ -279,7 +420,10 @@ const StoriesViewer = () => {
         {currentStory.deal && (
           <div className="absolute bottom-24 left-4 right-4 bg-primary/90 backdrop-blur-sm rounded-lg p-4">
             <p className="text-primary-foreground font-medium text-center">{currentStory.deal}</p>
-            <Button className="w-full mt-2 bg-white text-primary hover:bg-white/90">
+            <Button 
+              className="w-full mt-2 bg-white text-primary hover:bg-white/90"
+              onClick={handleClaimDeal}
+            >
               Claim Deal
             </Button>
           </div>
@@ -291,11 +435,26 @@ const StoriesViewer = () => {
             type="text"
             placeholder="Send a message..."
             className="flex-1 bg-white/20 backdrop-blur-sm text-white placeholder:text-white/70 rounded-full px-4 py-2 border border-white/30"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            onFocus={() => setIsPaused(true)}
+            onBlur={() => setIsPaused(false)}
           />
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
-            <Heart className="h-6 w-6" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={`hover:bg-white/20 transition-colors ${isLiked ? 'text-red-500' : 'text-white'}`}
+            onClick={handleLike}
+          >
+            <Heart className={`h-6 w-6 ${isLiked ? 'fill-current' : ''}`} />
           </Button>
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20"
+            onClick={handleSendMessage}
+          >
             <Send className="h-6 w-6" />
           </Button>
         </div>
