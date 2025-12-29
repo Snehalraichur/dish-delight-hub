@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/media";
 import { StoryEditor } from "@/components/media/StoryEditor";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CreateStory = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   
   // Camera and editor states
   const [showCamera, setShowCamera] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleCaptureMedia = () => {
     setShowCamera(true);
@@ -27,10 +31,39 @@ const CreateStory = () => {
     setShowEditor(true);
   };
 
-  const handleEditorSave = (editedImage: string) => {
-    // Here you would upload the story
-    toast.success("Story created successfully!");
-    navigate("/feed");
+  const handleEditorSave = async (editedImage: string) => {
+    setIsSaving(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Please login to create a story");
+        navigate("/login");
+        return;
+      }
+
+      // Insert story into database
+      const { error } = await supabase
+        .from('stories')
+        .insert({
+          user_id: user.id,
+          media_url: editedImage,
+        });
+
+      if (error) throw error;
+
+      // Invalidate stories query to refresh the feed
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      
+      toast.success("Story created successfully!");
+      navigate("/feed");
+    } catch (error) {
+      console.error('Error creating story:', error);
+      toast.error("Failed to create story. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleGallerySelect = () => {
