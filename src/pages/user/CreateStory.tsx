@@ -1,0 +1,137 @@
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Camera, Image, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { CameraCapture } from "@/components/media";
+import { StoryEditor } from "@/components/media/StoryEditor";
+
+const CreateStory = () => {
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Camera and editor states
+  const [showCamera, setShowCamera] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+  const handleTakePhoto = () => {
+    setShowCamera(true);
+  };
+
+  const handleCameraCapture = (imageData: string) => {
+    setCapturedImage(imageData);
+    setShowCamera(false);
+    setShowEditor(true);
+  };
+
+  const handleEditorSave = (editedImage: string) => {
+    // Here you would upload the story
+    toast.success("Story created successfully!");
+    navigate("/feed");
+  };
+
+  const handleGallerySelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageData = event.target?.result as string;
+        setCapturedImage(imageData);
+        setShowEditor(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClose = () => {
+    navigate(-1);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Main Content - Only show when camera and editor are not open */}
+      {!showCamera && !showEditor && (
+        <div className="flex flex-col h-screen">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <Button variant="ghost" size="icon" onClick={handleClose}>
+              <X className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">Create Story</h1>
+            <div className="w-10" /> {/* Spacer for centering */}
+          </div>
+
+          {/* Hidden file input for gallery */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          {/* Content */}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-6">
+            {/* Placeholder */}
+            <div className="w-full max-w-[300px] aspect-[9/16] bg-muted/30 rounded-2xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+              <Camera className="h-20 w-20 text-muted-foreground/30" />
+            </div>
+            
+            {/* Buttons */}
+            <div className="flex flex-col gap-3 w-full max-w-[300px]">
+              <Button 
+                variant="default" 
+                size="lg" 
+                onClick={handleTakePhoto}
+                className="w-full gradient-primary"
+              >
+                <Camera className="h-5 w-5 mr-2" />
+                Take Photo
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleGallerySelect}
+                className="w-full"
+              >
+                <Image className="h-5 w-5 mr-2" />
+                Choose from Gallery
+              </Button>
+            </div>
+            
+            <p className="text-muted-foreground text-sm text-center">
+              Share a moment with your followers
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Capture - Full screen */}
+      <CameraCapture
+        isOpen={showCamera}
+        onClose={() => setShowCamera(false)}
+        onCapture={handleCameraCapture}
+      />
+
+      {/* Story Editor - Full screen */}
+      {capturedImage && (
+        <StoryEditor
+          isOpen={showEditor}
+          imageData={capturedImage}
+          onClose={() => {
+            setShowEditor(false);
+            setCapturedImage(null);
+          }}
+          onSave={handleEditorSave}
+        />
+      )}
+    </div>
+  );
+};
+
+export default CreateStory;

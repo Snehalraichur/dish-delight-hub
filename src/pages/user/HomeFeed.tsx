@@ -87,7 +87,7 @@ export default function HomeFeed() {
 
   const handleStoryClick = (story: typeof stories[0]) => {
     if (story.isAdd) {
-      navigate('/create-post');
+      navigate('/create-story');
     } else {
       navigate(`/stories/${story.id}`);
     }

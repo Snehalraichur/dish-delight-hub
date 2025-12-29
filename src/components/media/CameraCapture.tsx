@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, RotateCcw, Check, Aperture } from "lucide-react";
+import { Camera, X, RotateCcw, Check, Aperture, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -26,7 +26,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         video: {
           facingMode: facingMode,
           width: { ideal: 1080 },
-          height: { ideal: 1080 },
+          height: { ideal: 1920 },
         },
         audio: false,
       });
@@ -57,9 +57,20 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
       startCamera();
     }
     return () => {
-      stopCamera();
+      if (!isOpen) {
+        stopCamera();
+      }
     };
   }, [isOpen, facingMode, capturedImage]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const switchCamera = () => {
     stopCamera();
@@ -92,15 +103,19 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
     setTimeout(() => setIsCapturing(false), 200);
   };
 
-  const retakePhoto = () => {
+  const retakePhoto = useCallback(() => {
     setCapturedImage(null);
-    startCamera();
-  };
+    // Small delay to ensure state is cleared before starting camera
+    setTimeout(() => {
+      startCamera();
+    }, 100);
+  }, [startCamera]);
 
   const confirmPhoto = () => {
     if (capturedImage) {
       onCapture(capturedImage);
       setCapturedImage(null);
+      stopCamera();
       onClose();
     }
   };
@@ -119,19 +134,23 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black"
+        className="fixed inset-0 z-[100] bg-black"
       >
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/70 to-transparent">
           <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20">
             <X className="h-6 w-6" />
           </Button>
-          <span className="text-white font-medium">
+          <span className="text-white font-medium text-lg">
             {capturedImage ? "Preview" : "Take Photo"}
           </span>
-          <Button variant="ghost" size="icon" onClick={switchCamera} className="text-white hover:bg-white/20" disabled={!!capturedImage}>
-            <RotateCcw className="h-5 w-5" />
-          </Button>
+          {!capturedImage ? (
+            <Button variant="ghost" size="icon" onClick={switchCamera} className="text-white hover:bg-white/20">
+              <RefreshCw className="h-5 w-5" />
+            </Button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
 
         {/* Camera View / Captured Image */}
@@ -165,16 +184,16 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         {/* Hidden canvas for capture */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Controls */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 p-8 bg-gradient-to-t from-black/50 to-transparent">
+        {/* Controls - Always visible at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 p-8 pb-12 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
           <div className="flex items-center justify-center gap-8">
             {capturedImage ? (
               <>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="lg"
                   onClick={retakePhoto}
-                  className="text-white hover:bg-white/20 h-14 px-6"
+                  className="h-14 px-6 bg-transparent border-white text-white hover:bg-white/20"
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
                   Retake
@@ -182,7 +201,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
                 <Button
                   size="lg"
                   onClick={confirmPhoto}
-                  className="gradient-primary h-14 px-6"
+                  className="h-14 px-8 gradient-primary"
                 >
                   <Check className="h-5 w-5 mr-2" />
                   Use Photo
@@ -192,7 +211,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={capturePhoto}
-                disabled={permissionDenied}
+                disabled={permissionDenied || !stream}
                 className={`w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all ${
                   isCapturing ? "bg-white/50" : "bg-transparent hover:bg-white/10"
                 } disabled:opacity-50`}
