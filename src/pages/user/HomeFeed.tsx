@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
@@ -79,9 +80,18 @@ const userStreak = {
 };
 
 export default function HomeFeed() {
+  const navigate = useNavigate();
   const [feedPosts, setFeedPosts] = useState(posts);
   const [selectedDeal, setSelectedDeal] = useState<typeof posts[0]['deal'] | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
+
+  const handleStoryClick = (story: typeof stories[0]) => {
+    if (story.isAdd) {
+      navigate('/create-post');
+    } else {
+      navigate(`/stories/${story.id}`);
+    }
+  };
 
   const toggleLike = (postId: string) => {
     setFeedPosts(prev =>
@@ -132,6 +142,7 @@ export default function HomeFeed() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
                 className="flex flex-col items-center gap-2 flex-shrink-0"
+                onClick={() => handleStoryClick(story)}
               >
                 <div
                   className={cn(
