@@ -1,9 +1,11 @@
 import { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, Wallet, CalendarDays, User, Bell, LogOut, Settings } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Home, Search, Wallet, CalendarDays, User, Bell, LogOut, Settings, Menu, X, PlusCircle, Flame, Gift, Bookmark, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -24,8 +28,20 @@ const navItems = [
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
+const menuItems = [
+  { path: '/create-post', icon: PlusCircle, label: 'Create Post' },
+  { path: '/streaks', icon: Flame, label: 'Streaks & Rewards' },
+  { path: '/rewards', icon: Gift, label: 'Rewards Points' },
+  { path: '/saved', icon: Bookmark, label: 'Saved Posts' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/support', icon: HelpCircle, label: 'Help & Support' },
+];
+
 export function UserLayout({ children }: UserLayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProfilePage = location.pathname === '/profile';
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -37,8 +53,14 @@ export function UserLayout({ children }: UserLayoutProps) {
     }
   };
 
+  const handleMenuNavigation = (path: string) => {
+    navigate(path);
+    setIsMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Mobile Header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gradient">SnapDish</h1>
@@ -50,22 +72,62 @@ export function UserLayout({ children }: UserLayoutProps) {
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
             </NavLink>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
-                <User className="w-5 h-5 text-muted-foreground" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            {isProfilePage ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                <SheetTrigger asChild>
+                  <button className="p-2 hover:bg-muted rounded-full transition-colors">
+                    <Menu className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] p-0">
+                  <SheetHeader className="p-4 border-b border-border">
+                    <SheetTitle className="text-left text-gradient">Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="py-2">
+                    {menuItems.map((item) => (
+                      <button
+                        key={item.path}
+                        onClick={() => handleMenuNavigation(item.path)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted",
+                          location.pathname === item.path && "bg-primary/10 text-primary"
+                        )}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                    <div className="border-t border-border mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
           </div>
         </div>
       </header>
@@ -103,26 +165,66 @@ export function UserLayout({ children }: UserLayoutProps) {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
               </NavLink>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="w-4 h-4 mr-2" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              
+              {isProfilePage ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                  <SheetTrigger asChild>
+                    <button className="p-2 hover:bg-muted rounded-full transition-colors">
+                      <Menu className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[320px] p-0">
+                    <SheetHeader className="p-4 border-b border-border">
+                      <SheetTitle className="text-left text-gradient">Menu</SheetTitle>
+                    </SheetHeader>
+                    <div className="py-2">
+                      {menuItems.map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleMenuNavigation(item.path)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted",
+                            location.pathname === item.path && "bg-primary/10 text-primary"
+                          )}
+                        >
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-medium">{item.label}</span>
+                        </button>
+                      ))}
+                      <div className="border-t border-border mt-2 pt-2">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          <LogOut className="w-5 h-5" />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
             </nav>
           </div>
         </div>
