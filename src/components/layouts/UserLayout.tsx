@@ -22,11 +22,13 @@ export function UserLayout({ children }: UserLayoutProps) {
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gradient">SnapDish</h1>
-          <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-muted rounded-full transition-colors">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
+          <NavLink 
+            to="/notifications" 
+            className="p-2 hover:bg-muted rounded-full transition-colors relative"
+          >
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+          </NavLink>
         </div>
       </header>
 
@@ -51,6 +53,18 @@ export function UserLayout({ children }: UserLayoutProps) {
                   <span>{item.label}</span>
                 </NavLink>
               ))}
+              <NavLink
+                to="/notifications"
+                className={({ isActive }) =>
+                  cn(
+                    "p-2 rounded-full transition-colors relative hover:bg-muted",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )
+                }
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+              </NavLink>
             </nav>
           </div>
         </div>
