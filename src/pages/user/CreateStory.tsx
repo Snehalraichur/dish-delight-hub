@@ -123,7 +123,7 @@ const CreateStory = () => {
       />
 
       {/* Story Editor - Full screen */}
-      {capturedMedia && (
+      {capturedMedia && showEditor && (
         <StoryEditor
           isOpen={showEditor}
           mediaData={capturedMedia}
@@ -132,6 +132,8 @@ const CreateStory = () => {
             setShowEditor(false);
             setCapturedMedia(null);
             setIsVideo(false);
+            // Navigate back when closing editor
+            navigate(-1);
           }}
           onSave={handleEditorSave}
         />

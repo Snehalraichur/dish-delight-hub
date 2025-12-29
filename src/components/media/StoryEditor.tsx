@@ -876,14 +876,22 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
                     )}
                   >
                     <div
-                      className="w-16 h-16 rounded-lg overflow-hidden bg-muted"
+                      className="w-16 h-16 rounded-lg overflow-hidden bg-gray-800 relative"
                       style={{ filter: preset.filter }}
                     >
-                      {!isVideo && (
+                      {isVideo ? (
+                        <video
+                          src={mediaData}
+                          className="w-full h-full object-cover"
+                          muted
+                          playsInline
+                        />
+                      ) : (
                         <img
                           src={mediaData}
                           alt={preset.name}
                           className="w-full h-full object-cover"
+                          loading="eager"
                         />
                       )}
                     </div>
