@@ -1,23 +1,31 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, X, RotateCcw, Check, Aperture, RefreshCw } from "lucide-react";
+import { Camera, X, RotateCcw, Check, Aperture, RefreshCw, Video, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface CameraCaptureProps {
   isOpen: boolean;
   onClose: () => void;
-  onCapture: (imageData: string) => void;
+  onCapture: (mediaData: string, isVideo?: boolean) => void;
 }
 
 export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedVideo, setCapturedVideo] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [mode, setMode] = useState<"photo" | "video">("photo");
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
 
   const startCamera = useCallback(async () => {
     try {
@@ -28,7 +36,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
           width: { ideal: 1080 },
           height: { ideal: 1920 },
         },
-        audio: false,
+        audio: mode === "video",
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -43,7 +51,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         toast.error("Could not access camera. Please try again.");
       }
     }
-  }, [facingMode]);
+  }, [facingMode, mode]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -53,7 +61,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
   }, [stream]);
 
   useEffect(() => {
-    if (isOpen && !capturedImage) {
+    if (isOpen && !capturedImage && !capturedVideo) {
       startCamera();
     }
     return () => {
@@ -61,7 +69,20 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         stopCamera();
       }
     };
-  }, [isOpen, facingMode, capturedImage]);
+  }, [isOpen, facingMode, capturedImage, capturedVideo, mode]);
+
+  // Recording timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingTime(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -88,14 +109,10 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
     
     if (!ctx) return;
     
-    // Set canvas size to video size
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
     ctx.drawImage(video, 0, 0);
     
-    // Get image data
     const imageData = canvas.toDataURL("image/jpeg", 0.9);
     setCapturedImage(imageData);
     stopCamera();
@@ -103,30 +120,76 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
     setTimeout(() => setIsCapturing(false), 200);
   };
 
-  const retakePhoto = useCallback(() => {
+  const startRecording = () => {
+    if (!stream) return;
+    
+    chunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp9',
+    });
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunksRef.current.push(e.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      const videoUrl = URL.createObjectURL(blob);
+      setCapturedVideo(videoUrl);
+      stopCamera();
+    };
+    
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+    setIsRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const retakeMedia = useCallback(() => {
     setCapturedImage(null);
-    // Small delay to ensure state is cleared before starting camera
+    setCapturedVideo(null);
     setTimeout(() => {
       startCamera();
     }, 100);
   }, [startCamera]);
 
-  const confirmPhoto = () => {
+  const confirmMedia = () => {
     if (capturedImage) {
-      onCapture(capturedImage);
-      setCapturedImage(null);
-      stopCamera();
-      onClose();
+      onCapture(capturedImage, false);
+    } else if (capturedVideo) {
+      onCapture(capturedVideo, true);
     }
+    setCapturedImage(null);
+    setCapturedVideo(null);
+    stopCamera();
+    onClose();
   };
 
   const handleClose = () => {
     stopCamera();
     setCapturedImage(null);
+    setCapturedVideo(null);
+    setIsRecording(false);
     onClose();
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   if (!isOpen) return null;
+
+  const hasCapturedMedia = capturedImage || capturedVideo;
 
   return (
     <AnimatePresence>
@@ -141,10 +204,18 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
           <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20">
             <X className="h-6 w-6" />
           </Button>
-          <span className="text-white font-medium text-lg">
-            {capturedImage ? "Preview" : "Take Photo"}
-          </span>
-          {!capturedImage ? (
+          <div className="flex flex-col items-center">
+            <span className="text-white font-medium text-lg">
+              {hasCapturedMedia ? "Preview" : mode === "photo" ? "Photo" : "Video"}
+            </span>
+            {isRecording && (
+              <span className="text-red-500 text-sm flex items-center gap-1">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                {formatTime(recordingTime)}
+              </span>
+            )}
+          </div>
+          {!hasCapturedMedia ? (
             <Button variant="ghost" size="icon" onClick={switchCamera} className="text-white hover:bg-white/20">
               <RefreshCw className="h-5 w-5" />
             </Button>
@@ -153,7 +224,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
           )}
         </div>
 
-        {/* Camera View / Captured Image */}
+        {/* Camera View / Captured Media */}
         <div className="absolute inset-0 flex items-center justify-center">
           {permissionDenied ? (
             <div className="flex flex-col items-center gap-4 p-8 text-center">
@@ -170,6 +241,14 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
               alt="Captured"
               className="w-full h-full object-contain"
             />
+          ) : capturedVideo ? (
+            <video
+              src={capturedVideo}
+              controls
+              autoPlay
+              loop
+              className="w-full h-full object-contain"
+            />
           ) : (
             <video
               ref={videoRef}
@@ -184,15 +263,41 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
         {/* Hidden canvas for capture */}
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Controls - Always visible at bottom */}
+        {/* Mode Toggle - Only when not captured and not recording */}
+        {!hasCapturedMedia && !isRecording && (
+          <div className="absolute bottom-32 left-0 right-0 z-10 flex justify-center">
+            <div className="flex gap-8">
+              <button
+                onClick={() => setMode("photo")}
+                className={cn(
+                  "text-sm font-medium transition-all",
+                  mode === "photo" ? "text-white" : "text-white/50"
+                )}
+              >
+                Photo
+              </button>
+              <button
+                onClick={() => setMode("video")}
+                className={cn(
+                  "text-sm font-medium transition-all",
+                  mode === "video" ? "text-white" : "text-white/50"
+                )}
+              >
+                Video
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
         <div className="absolute bottom-0 left-0 right-0 z-10 p-8 pb-12 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
           <div className="flex items-center justify-center gap-8">
-            {capturedImage ? (
+            {hasCapturedMedia ? (
               <>
                 <Button
                   variant="outline"
                   size="lg"
-                  onClick={retakePhoto}
+                  onClick={retakeMedia}
                   className="h-14 px-6 bg-transparent border-white text-white hover:bg-white/20"
                 >
                   <RotateCcw className="h-5 w-5 mr-2" />
@@ -200,14 +305,14 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
                 </Button>
                 <Button
                   size="lg"
-                  onClick={confirmPhoto}
+                  onClick={confirmMedia}
                   className="h-14 px-8 gradient-primary"
                 >
                   <Check className="h-5 w-5 mr-2" />
-                  Use Photo
+                  Use {capturedImage ? "Photo" : "Video"}
                 </Button>
               </>
-            ) : (
+            ) : mode === "photo" ? (
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={capturePhoto}
@@ -217,6 +322,22 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
                 } disabled:opacity-50`}
               >
                 <Aperture className={`h-10 w-10 text-white transition-transform ${isCapturing ? "scale-110" : ""}`} />
+              </motion.button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={permissionDenied || !stream}
+                className={cn(
+                  "w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all disabled:opacity-50",
+                  isRecording ? "border-red-500 bg-red-500/20" : "border-white bg-transparent hover:bg-white/10"
+                )}
+              >
+                {isRecording ? (
+                  <Square className="h-8 w-8 text-red-500 fill-red-500" />
+                ) : (
+                  <Video className="h-10 w-10 text-white" />
+                )}
               </motion.button>
             )}
           </div>
