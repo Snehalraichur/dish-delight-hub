@@ -13,14 +13,16 @@ const CreateStory = () => {
   // Camera and editor states
   const [showCamera, setShowCamera] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedMedia, setCapturedMedia] = useState<string | null>(null);
+  const [isVideo, setIsVideo] = useState(false);
 
-  const handleTakePhoto = () => {
+  const handleCaptureMedia = () => {
     setShowCamera(true);
   };
 
-  const handleCameraCapture = (imageData: string) => {
-    setCapturedImage(imageData);
+  const handleCameraCapture = (mediaData: string, isVideoFile?: boolean) => {
+    setCapturedMedia(mediaData);
+    setIsVideo(isVideoFile || false);
     setShowCamera(false);
     setShowEditor(true);
   };
@@ -38,10 +40,12 @@ const CreateStory = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const isVideoFile = file.type.startsWith('video/');
       const reader = new FileReader();
       reader.onload = (event) => {
-        const imageData = event.target?.result as string;
-        setCapturedImage(imageData);
+        const mediaData = event.target?.result as string;
+        setCapturedMedia(mediaData);
+        setIsVideo(isVideoFile);
         setShowEditor(true);
       };
       reader.readAsDataURL(file);
@@ -87,11 +91,11 @@ const CreateStory = () => {
               <Button 
                 variant="default" 
                 size="lg" 
-                onClick={handleTakePhoto}
+                onClick={handleCaptureMedia}
                 className="w-full gradient-primary"
               >
                 <Camera className="h-5 w-5 mr-2" />
-                Take Photo
+                Capture Photo/Video
               </Button>
               <Button 
                 variant="outline" 
@@ -100,7 +104,7 @@ const CreateStory = () => {
                 className="w-full"
               >
                 <Image className="h-5 w-5 mr-2" />
-                Choose from Gallery
+                Upload Photo/Video
               </Button>
             </div>
             
@@ -119,13 +123,15 @@ const CreateStory = () => {
       />
 
       {/* Story Editor - Full screen */}
-      {capturedImage && (
+      {capturedMedia && (
         <StoryEditor
           isOpen={showEditor}
-          imageData={capturedImage}
+          mediaData={capturedMedia}
+          isVideo={isVideo}
           onClose={() => {
             setShowEditor(false);
-            setCapturedImage(null);
+            setCapturedMedia(null);
+            setIsVideo(false);
           }}
           onSave={handleEditorSave}
         />

@@ -9,30 +9,62 @@ import {
   FlipHorizontal,
   Music,
   Type,
-  Sticker,
-  Sparkles,
+  Pencil,
+  Smile,
   Sun,
   Contrast,
-  Move
+  Move,
+  Sparkles,
+  Plus,
+  Trash2,
+  Play,
+  Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface StoryEditorProps {
   isOpen: boolean;
-  imageData: string;
+  mediaData: string;
+  isVideo?: boolean;
   onClose: () => void;
-  onSave: (editedImage: string) => void;
+  onSave: (editedMedia: string) => void;
 }
 
-type EditMode = "crop" | "filter" | "music" | "text" | null;
+type EditMode = "crop" | "filter" | "music" | "text" | "draw" | "sticker" | null;
 
 interface FilterPreset {
   name: string;
   filter: string;
   icon: string;
+}
+
+interface TextOverlay {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+}
+
+interface StickerOverlay {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+  size: number;
+}
+
+interface DrawingPath {
+  id: string;
+  points: { x: number; y: number }[];
+  color: string;
+  width: number;
 }
 
 const filterPresets: FilterPreset[] = [
@@ -58,16 +90,25 @@ const aspectRatios = [
 ];
 
 const musicTracks = [
-  { id: "1", name: "Chill Vibes", artist: "Lo-Fi Beats", duration: "0:30" },
-  { id: "2", name: "Summer Days", artist: "Happy Tunes", duration: "0:30" },
-  { id: "3", name: "Night Drive", artist: "Synth Wave", duration: "0:30" },
-  { id: "4", name: "Coffee Shop", artist: "Jazz Cafe", duration: "0:30" },
-  { id: "5", name: "Morning Run", artist: "Energy Boost", duration: "0:30" },
+  { id: "1", name: "Chill Vibes", artist: "Lo-Fi Beats", duration: "0:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: "2", name: "Summer Days", artist: "Happy Tunes", duration: "0:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { id: "3", name: "Night Drive", artist: "Synth Wave", duration: "0:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+  { id: "4", name: "Coffee Shop", artist: "Jazz Cafe", duration: "0:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+  { id: "5", name: "Morning Run", artist: "Energy Boost", duration: "0:30", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
 ];
 
-export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorProps) => {
+const textColors = ["#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"];
+const drawColors = ["#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#FFA500"];
+const fontFamilies = ["Arial", "Georgia", "Courier New", "Comic Sans MS", "Impact"];
+
+const stickers = ["😀", "😍", "🔥", "❤️", "⭐", "🎉", "👍", "💯", "🌟", "✨", "🎊", "🥳", "😎", "🤩", "💪", "🙌"];
+
+export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSave }: StoryEditorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const [editMode, setEditMode] = useState<EditMode>(null);
   const [selectedFilter, setSelectedFilter] = useState(filterPresets[0]);
@@ -78,20 +119,77 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
   const [flipH, setFlipH] = useState(false);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState(aspectRatios[0]);
   const [selectedMusic, setSelectedMusic] = useState<typeof musicTracks[0] | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // Crop state
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [cropScale, setCropScale] = useState(1);
 
+  // Text overlay state
+  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+  const [newText, setNewText] = useState("");
+  const [textColor, setTextColor] = useState("#FFFFFF");
+  const [fontSize, setFontSize] = useState(32);
+  const [fontFamily, setFontFamily] = useState("Arial");
+  const [draggingText, setDraggingText] = useState<string | null>(null);
+
+  // Sticker state
+  const [stickerOverlays, setStickerOverlays] = useState<StickerOverlay[]>([]);
+  const [draggingSticker, setDraggingSticker] = useState<string | null>(null);
+
+  // Drawing state
+  const [drawings, setDrawings] = useState<DrawingPath[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawColor, setDrawColor] = useState("#FFFFFF");
+  const [drawWidth, setDrawWidth] = useState(4);
+  const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([]);
+
   useEffect(() => {
-    if (isOpen && imageData) {
+    if (isOpen && mediaData && !isVideo) {
       const img = new Image();
       img.onload = () => {
         imageRef.current = img;
       };
-      img.src = imageData;
+      img.src = mediaData;
     }
-  }, [isOpen, imageData]);
+  }, [isOpen, mediaData, isVideo]);
+
+  // Handle music playback
+  useEffect(() => {
+    if (selectedMusic) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(selectedMusic.url);
+        audioRef.current.loop = true;
+      } else {
+        audioRef.current.src = selectedMusic.url;
+      }
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [selectedMusic]);
+
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(console.error);
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   const getFilterString = () => {
     let filter = selectedFilter.filter;
@@ -119,53 +217,141 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
     return transform;
   };
 
+  const addTextOverlay = () => {
+    if (!newText.trim()) return;
+    const newOverlay: TextOverlay = {
+      id: Date.now().toString(),
+      text: newText,
+      x: 50,
+      y: 50,
+      fontSize,
+      color: textColor,
+      fontFamily,
+    };
+    setTextOverlays([...textOverlays, newOverlay]);
+    setNewText("");
+    toast.success("Text added!");
+  };
+
+  const removeTextOverlay = (id: string) => {
+    setTextOverlays(textOverlays.filter(t => t.id !== id));
+  };
+
+  const addSticker = (emoji: string) => {
+    const newSticker: StickerOverlay = {
+      id: Date.now().toString(),
+      emoji,
+      x: 50,
+      y: 50,
+      size: 48,
+    };
+    setStickerOverlays([...stickerOverlays, newSticker]);
+    toast.success("Sticker added!");
+  };
+
+  const removeSticker = (id: string) => {
+    setStickerOverlays(stickerOverlays.filter(s => s.id !== id));
+  };
+
+  // Drawing handlers
+  const handleDrawStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (editMode !== "draw") return;
+    setIsDrawing(true);
+    const point = getEventPoint(e);
+    setCurrentPath([point]);
+  };
+
+  const handleDrawMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || editMode !== "draw") return;
+    const point = getEventPoint(e);
+    setCurrentPath(prev => [...prev, point]);
+  };
+
+  const handleDrawEnd = () => {
+    if (!isDrawing || currentPath.length === 0) return;
+    const newDrawing: DrawingPath = {
+      id: Date.now().toString(),
+      points: currentPath,
+      color: drawColor,
+      width: drawWidth,
+    };
+    setDrawings([...drawings, newDrawing]);
+    setCurrentPath([]);
+    setIsDrawing(false);
+  };
+
+  const getEventPoint = (e: React.MouseEvent | React.TouchEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    
+    return {
+      x: ((clientX - rect.left) / rect.width) * 100,
+      y: ((clientY - rect.top) / rect.height) * 100,
+    };
+  };
+
+  const clearDrawings = () => {
+    setDrawings([]);
+    toast.success("Drawings cleared!");
+  };
+
+  const handleTextDrag = (id: string, e: React.MouseEvent | React.TouchEvent) => {
+    setDraggingText(id);
+    e.preventDefault();
+  };
+
+  const handleStickerDrag = (id: string, e: React.MouseEvent | React.TouchEvent) => {
+    setDraggingSticker(id);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (draggingText) {
+      const point = getEventPoint(e);
+      setTextOverlays(overlays => 
+        overlays.map(t => t.id === draggingText ? { ...t, x: point.x, y: point.y } : t)
+      );
+    }
+    if (draggingSticker) {
+      const point = getEventPoint(e);
+      setStickerOverlays(stickers => 
+        stickers.map(s => s.id === draggingSticker ? { ...s, x: point.x, y: point.y } : s)
+      );
+    }
+    if (isDrawing && editMode === "draw") {
+      handleDrawMove(e);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDraggingText(null);
+    setDraggingSticker(null);
+    if (isDrawing) {
+      handleDrawEnd();
+    }
+  };
+
   const handleSave = () => {
-    if (!canvasRef.current || !imageRef.current) {
-      onSave(imageData);
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      onSave(imageData);
-      return;
-    }
-
-    const img = imageRef.current;
-    
-    // Set canvas size for story aspect ratio
-    const aspectRatio = selectedAspectRatio.ratio || img.naturalWidth / img.naturalHeight;
-    canvas.width = 1080;
-    canvas.height = aspectRatio > 0 ? 1080 / aspectRatio : 1920;
-
-    // Apply transformations
-    ctx.save();
-    ctx.filter = getFilterString();
-    
-    // Handle rotation and flip
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(cropScale * (flipH ? -1 : 1), cropScale);
-    ctx.translate(-canvas.width / 2 + cropOffset.x, -canvas.height / 2 + cropOffset.y);
-    
-    // Draw image centered
-    const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
-    const x = (canvas.width - img.naturalWidth * scale) / 2;
-    const y = (canvas.height - img.naturalHeight * scale) / 2;
-    ctx.drawImage(img, x, y, img.naturalWidth * scale, img.naturalHeight * scale);
-    
-    ctx.restore();
-
-    const editedImage = canvas.toDataURL("image/jpeg", 0.9);
-    
     if (selectedMusic) {
       toast.success(`Story saved with "${selectedMusic.name}" music!`);
     } else {
       toast.success("Story saved!");
     }
     
-    onSave(editedImage);
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    onSave(mediaData);
   };
 
   const resetEdits = () => {
@@ -178,6 +364,13 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
     setCropOffset({ x: 0, y: 0 });
     setCropScale(1);
     setSelectedMusic(null);
+    setTextOverlays([]);
+    setStickerOverlays([]);
+    setDrawings([]);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -202,8 +395,16 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
           </Button>
         </div>
 
-        {/* Image Preview */}
-        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden min-h-0">
+        {/* Media Preview */}
+        <div 
+          ref={containerRef}
+          className="flex-1 flex items-center justify-center p-4 overflow-hidden min-h-0 relative"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchMove={handleMouseMove}
+          onTouchEnd={handleMouseUp}
+        >
           <div 
             className="relative overflow-hidden rounded-xl"
             style={{ 
@@ -211,19 +412,123 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
               maxHeight: "100%",
               maxWidth: "100%",
             }}
+            onMouseDown={handleDrawStart}
+            onTouchStart={handleDrawStart}
           >
-            <img
-              src={imageData}
-              alt="Edit preview"
-              className="w-full h-full object-cover transition-all duration-200"
-              style={{
-                filter: getFilterString(),
-                transform: getTransformString(),
-              }}
-            />
+            {isVideo ? (
+              <video
+                src={mediaData}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover transition-all duration-200"
+                style={{
+                  filter: getFilterString(),
+                  transform: getTransformString(),
+                }}
+              />
+            ) : (
+              <img
+                src={mediaData}
+                alt="Edit preview"
+                className="w-full h-full object-cover transition-all duration-200"
+                style={{
+                  filter: getFilterString(),
+                  transform: getTransformString(),
+                }}
+              />
+            )}
+
+            {/* Text Overlays */}
+            {textOverlays.map((overlay) => (
+              <div
+                key={overlay.id}
+                className="absolute cursor-move select-none group"
+                style={{
+                  left: `${overlay.x}%`,
+                  top: `${overlay.y}%`,
+                  transform: "translate(-50%, -50%)",
+                  fontSize: `${overlay.fontSize}px`,
+                  color: overlay.color,
+                  fontFamily: overlay.fontFamily,
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
+                }}
+                onMouseDown={(e) => handleTextDrag(overlay.id, e)}
+                onTouchStart={(e) => handleTextDrag(overlay.id, e)}
+              >
+                {overlay.text}
+                <button
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); removeTextOverlay(overlay.id); }}
+                >
+                  <X className="h-3 w-3 text-white" />
+                </button>
+              </div>
+            ))}
+
+            {/* Sticker Overlays */}
+            {stickerOverlays.map((sticker) => (
+              <div
+                key={sticker.id}
+                className="absolute cursor-move select-none group"
+                style={{
+                  left: `${sticker.x}%`,
+                  top: `${sticker.y}%`,
+                  transform: "translate(-50%, -50%)",
+                  fontSize: `${sticker.size}px`,
+                }}
+                onMouseDown={(e) => handleStickerDrag(sticker.id, e)}
+                onTouchStart={(e) => handleStickerDrag(sticker.id, e)}
+              >
+                {sticker.emoji}
+                <button
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); removeSticker(sticker.id); }}
+                >
+                  <X className="h-3 w-3 text-white" />
+                </button>
+              </div>
+            ))}
+
+            {/* Drawing Layer */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              {drawings.map((drawing) => (
+                <path
+                  key={drawing.id}
+                  d={`M ${drawing.points.map(p => `${p.x}% ${p.y}%`).join(' L ')}`}
+                  fill="none"
+                  stroke={drawing.color}
+                  strokeWidth={drawing.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+              {currentPath.length > 0 && (
+                <path
+                  d={`M ${currentPath.map(p => `${p.x}% ${p.y}%`).join(' L ')}`}
+                  fill="none"
+                  stroke={drawColor}
+                  strokeWidth={drawWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              )}
+            </svg>
+
             {/* Music indicator */}
             {selectedMusic && (
-              <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
+              <div 
+                className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer"
+                onClick={togglePlayPause}
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4 text-primary" />
+                ) : (
+                  <Play className="h-4 w-4 text-primary" />
+                )}
                 <Music className="h-4 w-4 text-primary animate-pulse" />
                 <span className="text-white text-sm truncate">{selectedMusic.name} - {selectedMusic.artist}</span>
               </div>
@@ -235,7 +540,7 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Edit Controls */}
-        <div className="bg-black/80 p-4 space-y-4 shrink-0">
+        <div className="bg-black/80 p-4 space-y-4 shrink-0 max-h-[45vh] overflow-y-auto">
           {/* Mode Tabs - Scrollable */}
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <Button
@@ -261,6 +566,42 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
             >
               <Palette className="h-4 w-4 mr-2" />
               Filters
+            </Button>
+            <Button
+              variant={editMode === "text" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setEditMode(editMode === "text" ? null : "text")}
+              className={cn(
+                "shrink-0",
+                editMode === "text" ? "gradient-primary" : "text-white hover:bg-white/20"
+              )}
+            >
+              <Type className="h-4 w-4 mr-2" />
+              Text
+            </Button>
+            <Button
+              variant={editMode === "sticker" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setEditMode(editMode === "sticker" ? null : "sticker")}
+              className={cn(
+                "shrink-0",
+                editMode === "sticker" ? "gradient-primary" : "text-white hover:bg-white/20"
+              )}
+            >
+              <Smile className="h-4 w-4 mr-2" />
+              Stickers
+            </Button>
+            <Button
+              variant={editMode === "draw" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setEditMode(editMode === "draw" ? null : "draw")}
+              className={cn(
+                "shrink-0",
+                editMode === "draw" ? "gradient-primary" : "text-white hover:bg-white/20"
+              )}
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Draw
             </Button>
             <Button
               variant={editMode === "music" ? "default" : "ghost"}
@@ -320,8 +661,8 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
                     <div 
                       className="border-2 border-current"
                       style={{ 
-                        width: ratio.ratio > 1 ? 32 : 24 * ratio.ratio,
-                        height: ratio.ratio > 1 ? 32 / ratio.ratio : 24,
+                        width: ratio.ratio > 1 ? 32 : ratio.ratio === 0 ? 32 : 24 * ratio.ratio,
+                        height: ratio.ratio > 1 ? 32 / ratio.ratio : ratio.ratio === 0 ? 24 : 24,
                       }}
                     />
                     <span className="text-xs font-medium">{ratio.label}</span>
@@ -371,11 +712,13 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
                       className="w-16 h-16 rounded-lg overflow-hidden bg-muted"
                       style={{ filter: preset.filter }}
                     >
-                      <img
-                        src={imageData}
-                        alt={preset.name}
-                        className="w-full h-full object-cover"
-                      />
+                      {!isVideo && (
+                        <img
+                          src={mediaData}
+                          alt={preset.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <span className="text-xs text-white">{preset.name}</span>
                   </button>
@@ -436,6 +779,183 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
             </motion.div>
           )}
 
+          {/* Text Controls */}
+          {editMode === "text" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter text..."
+                  value={newText}
+                  onChange={(e) => setNewText(e.target.value)}
+                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                />
+                <Button onClick={addTextOverlay} size="icon" className="gradient-primary">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Font Size */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-white/70">
+                  <span>Font Size</span>
+                  <span>{fontSize}px</span>
+                </div>
+                <Slider
+                  value={[fontSize]}
+                  onValueChange={([val]) => setFontSize(val)}
+                  min={16}
+                  max={72}
+                  step={2}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Font Family */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {fontFamilies.map((font) => (
+                  <button
+                    key={font}
+                    onClick={() => setFontFamily(font)}
+                    className={cn(
+                      "px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all",
+                      fontFamily === font
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                    )}
+                    style={{ fontFamily: font }}
+                  >
+                    {font}
+                  </button>
+                ))}
+              </div>
+
+              {/* Text Color */}
+              <div className="flex gap-2">
+                {textColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setTextColor(color)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      textColor === color ? "border-primary scale-110" : "border-white/30"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+
+              {/* Active Text Overlays */}
+              {textOverlays.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-white/70">Added texts (drag to move):</p>
+                  <div className="flex flex-wrap gap-2">
+                    {textOverlays.map((t) => (
+                      <div key={t.id} className="flex items-center gap-1 bg-white/10 rounded px-2 py-1">
+                        <span className="text-white text-sm truncate max-w-[100px]">{t.text}</span>
+                        <button onClick={() => removeTextOverlay(t.id)}>
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Sticker Controls */}
+          {editMode === "sticker" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <p className="text-xs text-white/70">Tap a sticker to add it, drag to move:</p>
+              <div className="grid grid-cols-8 gap-2">
+                {stickers.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => addSticker(emoji)}
+                    className="text-2xl p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all hover:scale-110"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              {/* Active Stickers */}
+              {stickerOverlays.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {stickerOverlays.map((s) => (
+                    <div key={s.id} className="flex items-center gap-1 bg-white/10 rounded px-2 py-1">
+                      <span className="text-xl">{s.emoji}</span>
+                      <button onClick={() => removeSticker(s.id)}>
+                        <Trash2 className="h-3 w-3 text-red-400" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Drawing Controls */}
+          {editMode === "draw" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <p className="text-xs text-white/70">Draw on the image above:</p>
+              
+              {/* Draw Color */}
+              <div className="flex gap-2 items-center">
+                <span className="text-xs text-white/70">Color:</span>
+                {drawColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setDrawColor(color)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      drawColor === color ? "border-primary scale-110" : "border-white/30"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+
+              {/* Brush Size */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-white/70">
+                  <span>Brush Size</span>
+                  <span>{drawWidth}px</span>
+                </div>
+                <Slider
+                  value={[drawWidth]}
+                  onValueChange={([val]) => setDrawWidth(val)}
+                  min={2}
+                  max={20}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearDrawings}
+                className="text-white border-white/30 hover:bg-white/20"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Drawings
+              </Button>
+            </motion.div>
+          )}
+
           {/* Music Controls */}
           {editMode === "music" && (
             <motion.div
@@ -446,8 +966,15 @@ export const StoryEditor = ({ isOpen, imageData, onClose, onSave }: StoryEditorP
               {selectedMusic && (
                 <div className="flex items-center justify-between bg-primary/20 rounded-lg p-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center">
-                      <Music className="h-5 w-5 text-primary-foreground" />
+                    <div 
+                      className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center cursor-pointer"
+                      onClick={togglePlayPause}
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-5 w-5 text-primary-foreground" />
+                      ) : (
+                        <Play className="h-5 w-5 text-primary-foreground" />
+                      )}
                     </div>
                     <div>
                       <p className="text-white text-sm font-medium">{selectedMusic.name}</p>
