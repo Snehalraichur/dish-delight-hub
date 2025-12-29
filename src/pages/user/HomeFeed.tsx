@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { StreakTracker, AutoDealTag, DealCounter, QRRedemptionModal } from '@/components/gamification';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-// Mock data - names must match StoriesViewer mock data
-const stories = [
-  { id: '1', name: 'Your Story', image: null, isAdd: true },
+// Mock data for posts (stories come from database)
+const mockStories = [
   { id: 'bella-italia', name: 'Bella Italia', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop' },
   { id: 'taco-fiesta', name: 'Taco Fiesta', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop' },
   { id: 'sarah-chen', name: 'Sarah Chen', image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop' },
@@ -79,9 +80,76 @@ const userStreak = {
 
 export default function HomeFeed() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [feedPosts, setFeedPosts] = useState(posts);
   const [selectedDeal, setSelectedDeal] = useState<typeof posts[0]['deal'] | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
+
+  // Fetch stories with profile info
+  const { data: dbStories = [] } = useQuery({
+    queryKey: ['stories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stories')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            name,
+            profile_image_url
+          )
+        `)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Real-time subscription for new stories
+  useEffect(() => {
+    const channel = supabase
+      .channel('home-stories-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stories'
+        },
+        (payload) => {
+          console.log('Story change in feed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['stories'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Transform database stories to display format and combine with mock data
+  const stories = [
+    { id: 'add', name: 'Your Story', image: null, isAdd: true },
+    // Database stories with profile pictures
+    ...dbStories.reduce((acc: any[], s: any) => {
+      // Check if user already exists in the list
+      const existingUser = acc.find(story => story.id === s.user_id);
+      if (!existingUser) {
+        acc.push({
+          id: s.user_id,
+          name: s.profiles?.name || 'User',
+          image: s.profiles?.profile_image_url || '/placeholder.svg',
+          isAdd: false
+        });
+      }
+      return acc;
+    }, []),
+    // Add mock stories if no database stories
+    ...(dbStories.length === 0 ? mockStories : [])
+  ];
 
   const handleStoryClick = (story: typeof stories[0]) => {
     if (story.isAdd) {

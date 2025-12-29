@@ -4,7 +4,7 @@ import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2 } from 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -25,8 +25,6 @@ interface Story {
   user: StoryUser;
   media: string;
   timestamp: string;
-  deal: string | null;
-  dealId?: string;
 }
 
 interface GroupedStories {
@@ -37,6 +35,7 @@ interface GroupedStories {
 
 const StoriesViewer = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { userId: initialUserId } = useParams();
   
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
@@ -51,13 +50,20 @@ const StoriesViewer = () => {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Fetch stories from database
+  // Fetch stories from database with profile info
   const { data: stories = [], isLoading } = useQuery({
     queryKey: ['stories'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stories')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            name,
+            profile_image_url
+          )
+        `)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
       
@@ -66,63 +72,79 @@ const StoriesViewer = () => {
     },
   });
 
+  // Real-time subscription for new stories
+  useEffect(() => {
+    const channel = supabase
+      .channel('stories-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stories'
+        },
+        (payload) => {
+          console.log('Story change:', payload);
+          // Invalidate and refetch stories
+          queryClient.invalidateQueries({ queryKey: ['stories'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Transform and group stories by user
   const groupedStories: GroupedStories[] = (() => {
-    const storyList: Story[] = stories.length > 0 ? stories.map(s => ({
+    const storyList: Story[] = stories.length > 0 ? stories.map((s: any) => ({
       id: s.id,
       userId: s.user_id,
       user: { 
         id: s.user_id,
-        name: `User ${s.user_id.slice(0, 4)}`, 
-        avatar: "/placeholder.svg", 
+        name: s.profiles?.name || 'User', 
+        avatar: s.profiles?.profile_image_url || "/placeholder.svg", 
         isRestaurant: false 
       },
       media: s.media_url,
       timestamp: formatDistanceToNow(new Date(s.created_at || ''), { addSuffix: true }),
-      deal: null
     })) : [
+      // Fallback mock data when no stories exist
       {
         id: '1',
         userId: 'bella-italia',
-        user: { id: 'bella-italia', name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
+        user: { id: 'bella-italia', name: "Bella Italia", avatar: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop", isRestaurant: true },
         media: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
         timestamp: "2h ago",
-        deal: "20% off all pasta dishes today!",
-        dealId: 'deal-1'
       },
       {
         id: '2',
         userId: 'bella-italia',
-        user: { id: 'bella-italia', name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
+        user: { id: 'bella-italia', name: "Bella Italia", avatar: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop", isRestaurant: true },
         media: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800",
         timestamp: "2h ago",
-        deal: "Free dessert with any main course!",
-        dealId: 'deal-2'
       },
       {
         id: '3',
         userId: 'taco-fiesta',
-        user: { id: 'taco-fiesta', name: "Taco Fiesta", avatar: "/placeholder.svg", isRestaurant: true },
+        user: { id: 'taco-fiesta', name: "Taco Fiesta", avatar: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop", isRestaurant: true },
         media: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800",
         timestamp: "4h ago",
-        deal: "Buy 2 tacos, get 1 free!",
-        dealId: 'deal-3'
       },
       {
         id: '4',
         userId: 'sarah-chen',
-        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
+        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop", isRestaurant: false },
         media: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
         timestamp: "6h ago",
-        deal: null
       },
       {
         id: '5',
         userId: 'sarah-chen',
-        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
+        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop", isRestaurant: false },
         media: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800",
         timestamp: "6h ago",
-        deal: null
       }
     ];
 
