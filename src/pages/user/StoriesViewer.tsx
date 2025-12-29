@@ -1,46 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2, Eye } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2, Eye, Sparkles, Share2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-
-const STORY_DURATION = 5000; // 5 seconds per story
-const PROGRESS_INTERVAL = 50; // Update every 50ms for smooth animation
-const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger navigation
-
-const EMOJI_OPTIONS = ['❤️', '😍', '🔥', '😂', '😮', '👏'];
-
-interface StoryUser {
-  id: string;
-  name: string;
-  avatar: string;
-  isRestaurant: boolean;
-}
-
-interface Story {
-  id: string;
-  userId: string;
-  user: StoryUser;
-  media: string;
-  timestamp: string;
-  viewCount?: number;
-}
-
-interface GroupedStories {
-  userId: string;
-  user: StoryUser;
-  stories: Story[];
-}
+import { toast } from "sonner";
+import { 
+  useStories, 
+  useStoryViewCount, 
+  useRecordStoryView, 
+  useSendReaction,
+  useCurrentUser
+} from "@/hooks/useStories";
+import { StoryViewersList, StoryHighlightsModal, StoryReactionsBubbles } from "@/components/stories";
+import { EMOJI_OPTIONS, STORY_DURATION, PROGRESS_INTERVAL, SWIPE_THRESHOLD } from "@/types/stories";
 
 const StoriesViewer = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { userId: initialUserId } = useParams();
+  const { userId: currentUserId } = useCurrentUser();
+  const { groupedStories, isLoading } = useStories();
   
   const [currentUserIndex, setCurrentUserIndex] = useState(0);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -51,134 +30,23 @@ const StoriesViewer = () => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sentEmoji, setSentEmoji] = useState<string | null>(null);
-  const [viewCount, setViewCount] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
+  const [showHighlights, setShowHighlights] = useState(false);
   
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
   const viewRecorded = useRef<Set<string>>(new Set());
 
-  // Get current user
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id || null);
-    });
-  }, []);
+  const currentUserStories = groupedStories[currentUserIndex];
+  const currentStory = currentUserStories?.stories[currentStoryIndex];
+  const totalStoriesForUser = currentUserStories?.stories.length || 0;
+  const isOwnStory = currentStory?.userId === currentUserId;
 
-  // Fetch stories from database with profile info
-  const { data: stories = [], isLoading } = useQuery({
-    queryKey: ['stories'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stories')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            name,
-            profile_image_url
-          )
-        `)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Real-time subscription for new stories
-  useEffect(() => {
-    const channel = supabase
-      .channel('stories-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stories'
-        },
-        (payload) => {
-          console.log('Story change:', payload);
-          // Invalidate and refetch stories
-          queryClient.invalidateQueries({ queryKey: ['stories'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  // Transform and group stories by user
-  const groupedStories: GroupedStories[] = (() => {
-    const storyList: Story[] = stories.length > 0 ? stories.map((s: any) => ({
-      id: s.id,
-      userId: s.user_id,
-      user: { 
-        id: s.user_id,
-        name: s.profiles?.name || 'User', 
-        avatar: s.profiles?.profile_image_url || "/placeholder.svg", 
-        isRestaurant: false 
-      },
-      media: s.media_url,
-      timestamp: formatDistanceToNow(new Date(s.created_at || ''), { addSuffix: true }),
-    })) : [
-      // Fallback mock data when no stories exist
-      {
-        id: '1',
-        userId: 'bella-italia',
-        user: { id: 'bella-italia', name: "Bella Italia", avatar: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop", isRestaurant: true },
-        media: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
-        timestamp: "2h ago",
-      },
-      {
-        id: '2',
-        userId: 'bella-italia',
-        user: { id: 'bella-italia', name: "Bella Italia", avatar: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop", isRestaurant: true },
-        media: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800",
-        timestamp: "2h ago",
-      },
-      {
-        id: '3',
-        userId: 'taco-fiesta',
-        user: { id: 'taco-fiesta', name: "Taco Fiesta", avatar: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop", isRestaurant: true },
-        media: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800",
-        timestamp: "4h ago",
-      },
-      {
-        id: '4',
-        userId: 'sarah-chen',
-        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop", isRestaurant: false },
-        media: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
-        timestamp: "6h ago",
-      },
-      {
-        id: '5',
-        userId: 'sarah-chen',
-        user: { id: 'sarah-chen', name: "Sarah Chen", avatar: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop", isRestaurant: false },
-        media: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800",
-        timestamp: "6h ago",
-      }
-    ];
-
-    // Group by userId
-    const groups: Record<string, GroupedStories> = {};
-    storyList.forEach(story => {
-      if (!groups[story.userId]) {
-        groups[story.userId] = {
-          userId: story.userId,
-          user: story.user,
-          stories: []
-        };
-      }
-      groups[story.userId].stories.push(story);
-    });
-
-    return Object.values(groups);
-  })();
+  // Hooks
+  const { data: viewCount = 0 } = useStoryViewCount(currentStory?.id);
+  const recordView = useRecordStoryView();
+  const sendReaction = useSendReaction();
 
   // Find initial user index if userId param is provided
   useEffect(() => {
@@ -191,44 +59,43 @@ const StoriesViewer = () => {
     }
   }, [initialUserId, groupedStories.length]);
 
-  const currentUserStories = groupedStories[currentUserIndex];
-  const currentStory = currentUserStories?.stories[currentStoryIndex];
-  const totalStoriesForUser = currentUserStories?.stories.length || 0;
+  // Record view when story changes
+  useEffect(() => {
+    if (currentStory && !viewRecorded.current.has(currentStory.id)) {
+      viewRecorded.current.add(currentStory.id);
+      recordView.mutate(currentStory.id);
+    }
+  }, [currentStory?.id]);
 
   const goToFeed = useCallback(() => {
     navigate('/feed');
   }, [navigate]);
 
   const nextStory = useCallback(() => {
-    // Reset like state for new story
     setIsLiked(false);
+    setShowEmojiPicker(false);
     
     if (currentStoryIndex < totalStoriesForUser - 1) {
-      // More stories from current user
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
     } else if (currentUserIndex < groupedStories.length - 1) {
-      // Move to next user's stories
       setCurrentUserIndex(prev => prev + 1);
       setCurrentStoryIndex(0);
       setProgress(0);
     } else {
-      // All stories finished - go back to feed
       setHasEnded(true);
       goToFeed();
     }
   }, [currentStoryIndex, totalStoriesForUser, currentUserIndex, groupedStories.length, goToFeed]);
 
   const prevStory = useCallback(() => {
-    // Reset like state for new story
     setIsLiked(false);
+    setShowEmojiPicker(false);
     
     if (currentStoryIndex > 0) {
-      // Previous story from current user
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
     } else if (currentUserIndex > 0) {
-      // Go to previous user's last story
       setCurrentUserIndex(prev => prev - 1);
       const prevUserStories = groupedStories[currentUserIndex - 1];
       setCurrentStoryIndex(prevUserStories.stories.length - 1);
@@ -255,10 +122,8 @@ const StoriesViewer = () => {
     
     if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
       if (swipeDistance > 0) {
-        // Swiped left - next story
         nextStory();
       } else {
-        // Swiped right - previous story
         prevStory();
       }
     }
@@ -269,7 +134,7 @@ const StoriesViewer = () => {
 
   // Auto-progress timer
   useEffect(() => {
-    if (isPaused || hasEnded || isLoading) return;
+    if (isPaused || hasEnded || isLoading || showViewers || showHighlights) return;
 
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -283,7 +148,7 @@ const StoriesViewer = () => {
     }, PROGRESS_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [isPaused, hasEnded, isLoading, nextStory]);
+  }, [isPaused, hasEnded, isLoading, showViewers, showHighlights, nextStory]);
 
   // Reset progress when story changes
   useEffect(() => {
@@ -294,82 +159,24 @@ const StoriesViewer = () => {
     setIsPaused(prev => !prev);
   };
 
-  // Record view when story is displayed
-  useEffect(() => {
-    const recordView = async () => {
-      if (!currentStory || !currentUserId) return;
-      if (currentStory.id.includes('-')) return; // Skip mock stories
-      if (viewRecorded.current.has(currentStory.id)) return;
-      
-      viewRecorded.current.add(currentStory.id);
-      
-      try {
-        // Use any to bypass type checking until types are regenerated
-        await (supabase as any)
-          .from('story_views')
-          .upsert({
-            story_id: currentStory.id,
-            viewer_id: currentUserId
-          }, { onConflict: 'story_id,viewer_id' });
-      } catch (error) {
-        console.log('View recording error:', error);
-      }
-    };
-    
-    recordView();
-  }, [currentStory?.id, currentUserId]);
-
-  // Fetch view count for current story
-  useEffect(() => {
-    const fetchViewCount = async () => {
-      if (!currentStory || currentStory.id.includes('-')) {
-        setViewCount(Math.floor(Math.random() * 100) + 10); // Mock count for mock stories
-        return;
-      }
-      
-      const { count } = await (supabase as any)
-        .from('story_views')
-        .select('*', { count: 'exact', head: true })
-        .eq('story_id', currentStory.id);
-      
-      setViewCount(count || 0);
-    };
-    
-    fetchViewCount();
-  }, [currentStory?.id]);
-
   const handleLike = () => {
     setIsLiked(prev => !prev);
-    if (!isLiked) {
-      toast.success("Story liked!");
+    if (!isLiked && currentStory) {
+      sendReaction.mutate({ storyId: currentStory.id, emoji: '❤️' });
     }
   };
 
   const handleEmojiReaction = async (emoji: string) => {
     setSentEmoji(emoji);
     setShowEmojiPicker(false);
+    setIsPaused(false);
     
-    // Animate and hide after delay
     setTimeout(() => setSentEmoji(null), 1500);
     
-    if (!currentStory || !currentUserId || currentStory.id.includes('-')) {
-      toast.success(`Reacted with ${emoji}`);
-      return;
+    if (currentStory) {
+      sendReaction.mutate({ storyId: currentStory.id, emoji });
     }
-    
-    try {
-      // Use any to bypass type checking until types are regenerated
-      await (supabase as any)
-        .from('story_reactions')
-        .insert({
-          story_id: currentStory.id,
-          user_id: currentUserId,
-          emoji
-        });
-      toast.success(`Reacted with ${emoji}`);
-    } catch (error) {
-      console.log('Reaction error:', error);
-    }
+    toast.success(`Reacted with ${emoji}`);
   };
 
   const handleSendMessage = () => {
@@ -384,6 +191,18 @@ const StoriesViewer = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSendMessage();
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share && currentStory) {
+      navigator.share({
+        title: `Story by ${currentStory.user.name}`,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
     }
   };
 
@@ -417,7 +236,7 @@ const StoriesViewer = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Progress Bars - Only for current user's stories */}
+        {/* Progress Bars */}
         <div className="absolute top-4 left-4 right-4 z-10 flex gap-1">
           {currentUserStories?.stories.map((_, index) => (
             <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
@@ -431,7 +250,7 @@ const StoriesViewer = () => {
           ))}
         </div>
 
-        {/* User indicators showing all users */}
+        {/* User indicators */}
         <div className="absolute top-2 left-4 right-4 z-10 flex justify-center gap-1">
           {groupedStories.map((_, index) => (
             <div 
@@ -452,14 +271,37 @@ const StoriesViewer = () => {
               <p className="text-white font-medium text-sm">{currentStory.user.name}</p>
               <div className="flex items-center gap-2 text-white/70 text-xs">
                 <span>{currentStory.timestamp}</span>
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  {viewCount}
-                </span>
+                {isOwnStory && (
+                  <button 
+                    onClick={() => { setShowViewers(true); setIsPaused(true); }}
+                    className="flex items-center gap-1 hover:text-white transition-colors"
+                  >
+                    <Eye className="h-3 w-3" />
+                    {viewCount}
+                  </button>
+                )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {isOwnStory && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20"
+                onClick={() => { setShowHighlights(true); setIsPaused(true); }}
+              >
+                <Sparkles className="h-5 w-5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={handleShare}
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -490,7 +332,7 @@ const StoriesViewer = () => {
           draggable={false}
         />
 
-        {/* Navigation Areas (for click/tap) */}
+        {/* Navigation Areas */}
         <div
           className="absolute left-0 top-20 bottom-32 w-1/3 cursor-pointer"
           onClick={prevStory}
@@ -500,7 +342,7 @@ const StoriesViewer = () => {
           onClick={nextStory}
         />
 
-        {/* Navigation Arrows (visible on desktop) */}
+        {/* Navigation Arrows (desktop) */}
         {(currentStoryIndex > 0 || currentUserIndex > 0) && (
           <Button
             variant="ghost"
@@ -522,7 +364,8 @@ const StoriesViewer = () => {
           </Button>
         )}
 
-        {/* Deal info banner removed - no claim deal in stories */}
+        {/* Reactions Bubbles */}
+        <StoryReactionsBubbles storyId={currentStory.id} />
 
         {/* Emoji Reaction Animation */}
         <AnimatePresence>
@@ -580,7 +423,7 @@ const StoriesViewer = () => {
             className="text-white hover:bg-white/20 text-xl"
             onClick={() => {
               setShowEmojiPicker(!showEmojiPicker);
-              setIsPaused(true);
+              setIsPaused(!showEmojiPicker);
             }}
           >
             😊
@@ -602,6 +445,26 @@ const StoriesViewer = () => {
             <Send className="h-6 w-6" />
           </Button>
         </div>
+
+        {/* Story Viewers List Modal (for own stories) */}
+        {isOwnStory && (
+          <StoryViewersList
+            isOpen={showViewers}
+            onClose={() => { setShowViewers(false); setIsPaused(false); }}
+            storyId={currentStory.id}
+            viewCount={viewCount}
+          />
+        )}
+
+        {/* Highlights Modal (for own stories) */}
+        {isOwnStory && (
+          <StoryHighlightsModal
+            isOpen={showHighlights}
+            onClose={() => { setShowHighlights(false); setIsPaused(false); }}
+            storyId={currentStory.id}
+            mediaUrl={currentStory.media}
+          />
+        )}
       </div>
     </div>
   );
