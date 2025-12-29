@@ -30,6 +30,7 @@ import Messages from "./pages/user/Messages";
 import ChatThread from "./pages/user/ChatThread";
 import StoriesViewer from "./pages/user/StoriesViewer";
 import CreatePost from "./pages/user/CreatePost";
+import CreateStory from "./pages/user/CreateStory";
 import PostDetail from "./pages/user/PostDetail";
 import CommentsFullView from "./pages/user/CommentsFullView";
 import RestaurantProfile from "./pages/user/RestaurantProfile";
@@ -151,6 +152,7 @@ const App = () => (
             <Route path="/messages/:threadId" element={<ChatThread />} />
             <Route path="/stories/:userId" element={<StoriesViewer />} />
             <Route path="/create-post" element={<CreatePost />} />
+            <Route path="/create-story" element={<CreateStory />} />
             <Route path="/post/:postId" element={<PostDetail />} />
             <Route path="/post/:postId/comments" element={<CommentsFullView />} />
             <Route path="/restaurant/:restaurantId" element={<RestaurantProfile />} />
