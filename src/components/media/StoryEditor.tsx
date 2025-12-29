@@ -36,7 +36,7 @@ interface StoryEditorProps {
   onSave: (editedMedia: string) => void;
 }
 
-type EditMode = "crop" | "filter" | "music" | "text" | "draw" | "sticker" | null;
+type EditMode = "crop" | "filter" | "music" | "text" | "draw" | "sticker" | "tag" | null;
 
 interface FilterPreset {
   name: string;
@@ -106,10 +106,10 @@ const textColors = ["#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFF
 const drawColors = ["#FFFFFF", "#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#FFA500"];
 const fontFamilies = ["Arial", "Georgia", "Courier New", "Comic Sans MS", "Impact", "Verdana"];
 const brushPresets = [
-  { name: "Fine", width: 2 },
-  { name: "Medium", width: 6 },
-  { name: "Thick", width: 12 },
-  { name: "Marker", width: 20 },
+  { name: "Pencil", width: 2 },
+  { name: "Small Brush", width: 6 },
+  { name: "Medium Brush", width: 12 },
+  { name: "Large Brush", width: 20 },
 ];
 
 const stickers = ["😀", "😍", "🔥", "❤️", "⭐", "🎉", "👍", "💯", "🌟", "✨", "🎊", "🥳", "😎", "🤩", "💪", "🙌"];
@@ -517,26 +517,32 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
             )}
 
             {/* SVG Drawing Canvas */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+            <svg 
+              className="absolute inset-0 w-full h-full pointer-events-none z-20"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
               {drawings.map((drawing) => (
                 <path
                   key={drawing.id}
-                  d={`M ${drawing.points.map(p => `${p.x}% ${p.y}%`).join(' L ')}`}
+                  d={`M ${drawing.points.map(p => `${p.x} ${p.y}`).join(' L ')}`}
                   fill="none"
                   stroke={drawing.color}
-                  strokeWidth={drawing.width}
+                  strokeWidth={drawing.width / 10}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
                 />
               ))}
               {currentPath.length > 0 && (
                 <path
-                  d={`M ${currentPath.map(p => `${p.x}% ${p.y}%`).join(' L ')}`}
+                  d={`M ${currentPath.map(p => `${p.x} ${p.y}`).join(' L ')}`}
                   fill="none"
                   stroke={drawColor}
-                  strokeWidth={drawWidth}
+                  strokeWidth={drawWidth / 10}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
             </svg>
@@ -726,6 +732,18 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
             >
               <Type className="h-4 w-4 mr-2" />
               Text
+            </Button>
+            <Button
+              variant={editMode === "tag" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setEditMode(editMode === "tag" ? null : "tag")}
+              className={cn(
+                "shrink-0",
+                editMode === "tag" ? "gradient-primary" : "text-white hover:bg-white/20"
+              )}
+            >
+              <AtSign className="h-4 w-4 mr-2" />
+              Tag
             </Button>
             <Button
               variant={editMode === "sticker" ? "default" : "ghost"}
@@ -935,17 +953,11 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
               animate={{ opacity: 1, y: 0 }}
               className="space-y-4"
             >
-              {/* Add Text and Tag buttons */}
-              <div className="flex gap-2">
-                <Button onClick={addTextOverlay} className="flex-1 gradient-primary">
-                  <Type className="h-4 w-4 mr-2" />
-                  Add Text
-                </Button>
-                <Button onClick={addTagOverlay} variant="outline" className="flex-1 border-primary text-primary hover:bg-primary/10">
-                  <AtSign className="h-4 w-4 mr-2" />
-                  Tag Friend
-                </Button>
-              </div>
+              {/* Add Text button */}
+              <Button onClick={addTextOverlay} className="w-full gradient-primary">
+                <Type className="h-4 w-4 mr-2" />
+                Add Text
+              </Button>
 
               {/* Text Style Options - only show when text is selected */}
               {selectedTextId && (
@@ -1068,6 +1080,46 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
             </motion.div>
           )}
 
+          {/* Tag Controls */}
+          {editMode === "tag" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              {/* Add Tag button */}
+              <Button onClick={addTagOverlay} className="w-full gradient-primary">
+                <AtSign className="h-4 w-4 mr-2" />
+                Tag a Friend
+              </Button>
+
+              {/* Active Tags */}
+              {textOverlays.filter(t => t.isTag).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-white/70">Tagged friends (tap to select, drag to move):</p>
+                  <div className="flex flex-wrap gap-2">
+                    {textOverlays.filter(t => t.isTag).map((t) => (
+                      <div 
+                        key={t.id} 
+                        className={cn(
+                          "flex items-center gap-1 rounded px-2 py-1 cursor-pointer transition-all",
+                          selectedTextId === t.id ? "bg-primary/30 ring-1 ring-primary" : "bg-white/10"
+                        )}
+                        onClick={() => setSelectedTextId(t.id)}
+                      >
+                        <AtSign className="h-3 w-3 text-primary" />
+                        <span className="text-white text-sm truncate max-w-[100px]">{t.text}</span>
+                        <button onClick={(e) => { e.stopPropagation(); removeTextOverlay(t.id); }}>
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Drawing Controls */}
           {editMode === "draw" && (
             <motion.div
@@ -1176,16 +1228,15 @@ export const StoryEditor = ({ isOpen, mediaData, isVideo = false, onClose, onSav
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-3 max-h-[200px] overflow-y-auto"
+              className="space-y-3 max-h-[250px] overflow-y-auto"
             >
-              {/* Upload Custom Music */}
+              {/* Upload Custom Music - Prominent Button */}
               <Button
-                variant="outline"
-                className="w-full border-dashed border-white/30 text-white hover:bg-white/10"
+                className="w-full gradient-primary py-6 text-lg font-semibold"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Your Music
+                <Upload className="h-5 w-5 mr-2" />
+                Add Your Music
               </Button>
 
               {/* Custom Music Display */}

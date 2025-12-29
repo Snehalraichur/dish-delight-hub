@@ -66,8 +66,13 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         setStream(null);
+        // Small delay to ensure camera is released before restarting
+        setTimeout(() => {
+          startCamera();
+        }, 100);
+      } else {
+        startCamera();
       }
-      startCamera();
     }
     return () => {
       if (!isOpen) {
