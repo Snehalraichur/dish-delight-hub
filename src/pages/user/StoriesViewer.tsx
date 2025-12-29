@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Heart, Send, MoreHorizontal } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, Send, MoreHorizontal, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+
+const STORY_DURATION = 5000; // 5 seconds per story
+const PROGRESS_INTERVAL = 50; // Update every 50ms for smooth animation
 
 const StoriesViewer = () => {
   const navigate = useNavigate();
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const stories = [
     {
@@ -35,20 +39,47 @@ const StoriesViewer = () => {
 
   const currentStory = stories[currentStoryIndex];
 
-  const nextStory = () => {
+  const nextStory = useCallback(() => {
     if (currentStoryIndex < stories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
     } else {
       navigate(-1);
     }
-  };
+  }, [currentStoryIndex, stories.length, navigate]);
 
   const prevStory = () => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
     }
+  };
+
+  // Auto-progress timer
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + (100 / (STORY_DURATION / PROGRESS_INTERVAL));
+        if (newProgress >= 100) {
+          nextStory();
+          return 0;
+        }
+        return newProgress;
+      });
+    }, PROGRESS_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isPaused, nextStory]);
+
+  // Reset progress when story changes
+  useEffect(() => {
+    setProgress(0);
+  }, [currentStoryIndex]);
+
+  const togglePause = () => {
+    setIsPaused(prev => !prev);
   };
 
   return (
@@ -78,14 +109,24 @@ const StoriesViewer = () => {
               <p className="text-white/70 text-xs">{currentStory.timestamp}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/20"
-            onClick={() => navigate(-1)}
-          >
-            <X className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={togglePause}
+            >
+              {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={() => navigate(-1)}
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
 
         {/* Story Content */}
@@ -93,6 +134,11 @@ const StoriesViewer = () => {
           src={currentStory.media}
           alt="Story"
           className="w-full h-full object-cover"
+          onMouseDown={() => setIsPaused(true)}
+          onMouseUp={() => setIsPaused(false)}
+          onMouseLeave={() => setIsPaused(false)}
+          onTouchStart={() => setIsPaused(true)}
+          onTouchEnd={() => setIsPaused(false)}
         />
 
         {/* Navigation Areas */}
