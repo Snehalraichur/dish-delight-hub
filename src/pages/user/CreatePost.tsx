@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Image, MapPin, Tag, X, AtSign, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { UserLayout } from "@/components/layouts/UserLayout";
+import { CameraCapture, ImageEditor } from "@/components/media";
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = useState("");
+  
+  // Camera and editor states
+  const [showCamera, setShowCamera] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
   const suggestedRestaurants = [
     { id: "1", name: "Bella Italia", location: "Downtown" },
@@ -25,9 +32,37 @@ const CreatePost = () => {
 
   const suggestedHashtags = ["#foodie", "#delicious", "#instafood", "#yummy", "#foodporn", "#homemade"];
 
-  const handleImageUpload = () => {
-    setSelectedImage("https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800");
-    toast.success("Image uploaded!");
+  const handleTakePhoto = () => {
+    setShowCamera(true);
+  };
+
+  const handleCameraCapture = (imageData: string) => {
+    setCapturedImage(imageData);
+    setShowCamera(false);
+    setShowEditor(true);
+  };
+
+  const handleEditorSave = (editedImage: string) => {
+    setSelectedImage(editedImage);
+    setCapturedImage(null);
+    setShowEditor(false);
+  };
+
+  const handleGallerySelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageData = event.target?.result as string;
+        setCapturedImage(imageData);
+        setShowEditor(true);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const addHashtag = (tag: string) => {
@@ -65,9 +100,18 @@ const CreatePost = () => {
           </Button>
         </div>
 
+        {/* Hidden file input for gallery */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
         {/* Image Upload Area */}
         <Card className="border-2 border-dashed border-muted-foreground/30">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {selectedImage ? (
               <div className="relative">
                 <img
@@ -85,22 +129,58 @@ const CreatePost = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <div className="flex gap-4">
-                  <Button variant="outline" size="lg" onClick={handleImageUpload}>
+              <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
+                {/* Placeholder image area */}
+                <div className="w-full aspect-square max-w-[280px] bg-muted/50 rounded-lg flex items-center justify-center mb-4">
+                  <Camera className="h-16 w-16 text-muted-foreground/30" />
+                </div>
+                
+                {/* Buttons - stacked on mobile, side by side on desktop */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={handleTakePhoto}
+                    className="w-full sm:w-auto"
+                  >
                     <Camera className="h-5 w-5 mr-2" />
                     Take Photo
                   </Button>
-                  <Button variant="outline" size="lg" onClick={handleImageUpload}>
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    onClick={handleGallerySelect}
+                    className="w-full sm:w-auto"
+                  >
                     <Image className="h-5 w-5 mr-2" />
                     Gallery
                   </Button>
                 </div>
-                <p className="text-muted-foreground text-sm">Share your food experience</p>
+                <p className="text-muted-foreground text-sm text-center">Share your food experience</p>
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Camera Capture Modal */}
+        <CameraCapture
+          isOpen={showCamera}
+          onClose={() => setShowCamera(false)}
+          onCapture={handleCameraCapture}
+        />
+
+        {/* Image Editor Modal */}
+        {capturedImage && (
+          <ImageEditor
+            isOpen={showEditor}
+            imageData={capturedImage}
+            onClose={() => {
+              setShowEditor(false);
+              setCapturedImage(null);
+            }}
+            onSave={handleEditorSave}
+          />
+        )}
 
         {/* Caption */}
         <div className="space-y-2">
