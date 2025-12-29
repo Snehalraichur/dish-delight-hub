@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { XCircle, RefreshCw, HelpCircle, Home, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import UserLayout from "@/components/layouts/UserLayout";
+import { UserLayout } from "@/components/layouts/UserLayout";
 
 const RedemptionFailed = () => {
   const navigate = useNavigate();

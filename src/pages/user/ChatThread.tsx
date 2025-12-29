@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import UserLayout from "@/components/layouts/UserLayout";
+import { UserLayout } from "@/components/layouts/UserLayout";
 
 const ChatThread = () => {
   const navigate = useNavigate();

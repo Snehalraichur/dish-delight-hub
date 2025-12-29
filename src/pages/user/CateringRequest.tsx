@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import UserLayout from "@/components/layouts/UserLayout";
+import { UserLayout } from "@/components/layouts/UserLayout";
 
 const CateringRequest = () => {
   const navigate = useNavigate();

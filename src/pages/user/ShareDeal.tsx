@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import UserLayout from "@/components/layouts/UserLayout";
+import { UserLayout } from "@/components/layouts/UserLayout";
 
 const ShareDeal = () => {
   const navigate = useNavigate();

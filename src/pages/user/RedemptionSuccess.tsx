@@ -3,7 +3,7 @@ import { CheckCircle, Share2, Star, Home, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import UserLayout from "@/components/layouts/UserLayout";
+import { UserLayout } from "@/components/layouts/UserLayout";
 
 const RedemptionSuccess = () => {
   const navigate = useNavigate();
