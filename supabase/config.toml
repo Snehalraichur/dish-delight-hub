@@ -1,1 +1,13 @@
 project_id = "hmedlhhcpoltalyxhaqr"
+
+[functions.qr-validation]
+verify_jwt = false
+
+[functions.analytics-aggregation]
+verify_jwt = true
+
+[functions.complex-queries]
+verify_jwt = true
+
+[functions.points-engine]
+verify_jwt = true
