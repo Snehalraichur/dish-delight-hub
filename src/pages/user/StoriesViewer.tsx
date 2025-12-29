@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const PROGRESS_INTERVAL = 50; // Update every 50ms for smooth animation
 const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger navigation
+
+const EMOJI_OPTIONS = ['❤️', '😍', '🔥', '😂', '😮', '👏'];
 
 interface StoryUser {
   id: string;
@@ -25,6 +28,7 @@ interface Story {
   user: StoryUser;
   media: string;
   timestamp: string;
+  viewCount?: number;
 }
 
 interface GroupedStories {
@@ -45,10 +49,22 @@ const StoriesViewer = () => {
   const [hasEnded, setHasEnded] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [message, setMessage] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [sentEmoji, setSentEmoji] = useState<string | null>(null);
+  const [viewCount, setViewCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+  const viewRecorded = useRef<Set<string>>(new Set());
+
+  // Get current user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
+  }, []);
 
   // Fetch stories from database with profile info
   const { data: stories = [], isLoading } = useQuery({
@@ -278,11 +294,81 @@ const StoriesViewer = () => {
     setIsPaused(prev => !prev);
   };
 
+  // Record view when story is displayed
+  useEffect(() => {
+    const recordView = async () => {
+      if (!currentStory || !currentUserId) return;
+      if (currentStory.id.includes('-')) return; // Skip mock stories
+      if (viewRecorded.current.has(currentStory.id)) return;
+      
+      viewRecorded.current.add(currentStory.id);
+      
+      try {
+        // Use any to bypass type checking until types are regenerated
+        await (supabase as any)
+          .from('story_views')
+          .upsert({
+            story_id: currentStory.id,
+            viewer_id: currentUserId
+          }, { onConflict: 'story_id,viewer_id' });
+      } catch (error) {
+        console.log('View recording error:', error);
+      }
+    };
+    
+    recordView();
+  }, [currentStory?.id, currentUserId]);
+
+  // Fetch view count for current story
+  useEffect(() => {
+    const fetchViewCount = async () => {
+      if (!currentStory || currentStory.id.includes('-')) {
+        setViewCount(Math.floor(Math.random() * 100) + 10); // Mock count for mock stories
+        return;
+      }
+      
+      const { count } = await (supabase as any)
+        .from('story_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('story_id', currentStory.id);
+      
+      setViewCount(count || 0);
+    };
+    
+    fetchViewCount();
+  }, [currentStory?.id]);
 
   const handleLike = () => {
     setIsLiked(prev => !prev);
     if (!isLiked) {
       toast.success("Story liked!");
+    }
+  };
+
+  const handleEmojiReaction = async (emoji: string) => {
+    setSentEmoji(emoji);
+    setShowEmojiPicker(false);
+    
+    // Animate and hide after delay
+    setTimeout(() => setSentEmoji(null), 1500);
+    
+    if (!currentStory || !currentUserId || currentStory.id.includes('-')) {
+      toast.success(`Reacted with ${emoji}`);
+      return;
+    }
+    
+    try {
+      // Use any to bypass type checking until types are regenerated
+      await (supabase as any)
+        .from('story_reactions')
+        .insert({
+          story_id: currentStory.id,
+          user_id: currentUserId,
+          emoji
+        });
+      toast.success(`Reacted with ${emoji}`);
+    } catch (error) {
+      console.log('Reaction error:', error);
     }
   };
 
@@ -364,7 +450,13 @@ const StoriesViewer = () => {
             </Avatar>
             <div>
               <p className="text-white font-medium text-sm">{currentStory.user.name}</p>
-              <p className="text-white/70 text-xs">{currentStory.timestamp}</p>
+              <div className="flex items-center gap-2 text-white/70 text-xs">
+                <span>{currentStory.timestamp}</span>
+                <span className="flex items-center gap-1">
+                  <Eye className="h-3 w-3" />
+                  {viewCount}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -432,6 +524,44 @@ const StoriesViewer = () => {
 
         {/* Deal info banner removed - no claim deal in stories */}
 
+        {/* Emoji Reaction Animation */}
+        <AnimatePresence>
+          {sentEmoji && (
+            <motion.div
+              initial={{ scale: 0, y: 0 }}
+              animate={{ scale: 1.5, y: -100 }}
+              exit={{ opacity: 0, scale: 2, y: -200 }}
+              className="absolute bottom-32 left-1/2 -translate-x-1/2 text-6xl z-20"
+            >
+              {sentEmoji}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Emoji Picker */}
+        <AnimatePresence>
+          {showEmojiPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-20 left-4 right-4 bg-black/80 backdrop-blur-md rounded-2xl p-4 z-20"
+            >
+              <div className="flex justify-around">
+                {EMOJI_OPTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmojiReaction(emoji)}
+                    className="text-3xl hover:scale-125 transition-transform p-2"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Footer Actions */}
         <div className="absolute bottom-6 left-4 right-4 flex items-center gap-3">
           <input
@@ -444,6 +574,17 @@ const StoriesViewer = () => {
             onFocus={() => setIsPaused(true)}
             onBlur={() => setIsPaused(false)}
           />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20 text-xl"
+            onClick={() => {
+              setShowEmojiPicker(!showEmojiPicker);
+              setIsPaused(true);
+            }}
+          >
+            😊
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 
