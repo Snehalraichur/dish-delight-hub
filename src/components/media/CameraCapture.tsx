@@ -62,6 +62,11 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
 
   useEffect(() => {
     if (isOpen && !capturedImage && !capturedVideo) {
+      // Stop existing stream first when mode changes (to get audio for video mode)
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
       startCamera();
     }
     return () => {
