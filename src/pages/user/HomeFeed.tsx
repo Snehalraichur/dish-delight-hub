@@ -8,14 +8,12 @@ import { cn } from '@/lib/utils';
 import { StreakTracker, AutoDealTag, DealCounter, QRRedemptionModal } from '@/components/gamification';
 import { toast } from 'sonner';
 
-// Mock data
+// Mock data - names must match StoriesViewer mock data
 const stories = [
   { id: '1', name: 'Your Story', image: null, isAdd: true },
-  { id: '2', name: 'Pizza Palace', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&h=100&fit=crop' },
-  { id: '3', name: 'Sushi Master', image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&h=100&fit=crop' },
-  { id: '4', name: 'Burger Joint', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop' },
-  { id: '5', name: 'Taco Town', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop' },
-  { id: '6', name: 'Pasta House', image: 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=100&h=100&fit=crop' },
+  { id: 'bella-italia', name: 'Bella Italia', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop' },
+  { id: 'taco-fiesta', name: 'Taco Fiesta', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop' },
+  { id: 'sarah-chen', name: 'Sarah Chen', image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop' },
 ];
 
 const posts = [

@@ -256,14 +256,6 @@ const StoriesViewer = () => {
     setIsPaused(prev => !prev);
   };
 
-  const handleClaimDeal = () => {
-    if (currentStory?.dealId) {
-      navigate(`/deal-redemption/${currentStory.dealId}`);
-    } else {
-      toast.success("Deal claimed! Check your wallet.");
-      navigate('/deal-wallet');
-    }
-  };
 
   const handleLike = () => {
     setIsLiked(prev => !prev);
@@ -416,18 +408,7 @@ const StoriesViewer = () => {
           </Button>
         )}
 
-        {/* Deal Banner (if restaurant story) */}
-        {currentStory.deal && (
-          <div className="absolute bottom-24 left-4 right-4 bg-primary/90 backdrop-blur-sm rounded-lg p-4">
-            <p className="text-primary-foreground font-medium text-center">{currentStory.deal}</p>
-            <Button 
-              className="w-full mt-2 bg-white text-primary hover:bg-white/90"
-              onClick={handleClaimDeal}
-            >
-              Claim Deal
-            </Button>
-          </div>
-        )}
+        {/* Deal info banner removed - no claim deal in stories */}
 
         {/* Footer Actions */}
         <div className="absolute bottom-6 left-4 right-4 flex items-center gap-3">
