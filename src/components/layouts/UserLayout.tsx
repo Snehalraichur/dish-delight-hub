@@ -1,7 +1,16 @@
 import { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, Search, Wallet, CalendarDays, User, Bell } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, Search, Wallet, CalendarDays, User, Bell, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -16,19 +25,48 @@ const navItems = [
 ];
 
 export function UserLayout({ children }: UserLayoutProps) {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to logout');
+    } else {
+      toast.success('Logged out successfully');
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Mobile Header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gradient">SnapDish</h1>
-          <NavLink 
-            to="/notifications" 
-            className="p-2 hover:bg-muted rounded-full transition-colors relative"
-          >
-            <Bell className="w-5 h-5 text-muted-foreground" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-          </NavLink>
+          <div className="flex items-center gap-2">
+            <NavLink 
+              to="/notifications" 
+              className="p-2 hover:bg-muted rounded-full transition-colors relative"
+            >
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+            </NavLink>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
+                <User className="w-5 h-5 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
@@ -38,7 +76,7 @@ export function UserLayout({ children }: UserLayoutProps) {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gradient">SnapDish</h1>
             <nav className="flex items-center gap-8">
-              {navItems.map((item) => (
+              {navItems.filter(item => item.path !== '/profile').map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
@@ -65,6 +103,26 @@ export function UserLayout({ children }: UserLayoutProps) {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
               </NavLink>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </nav>
           </div>
         </div>
