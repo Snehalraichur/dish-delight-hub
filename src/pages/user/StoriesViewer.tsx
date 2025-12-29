@@ -1,63 +1,137 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Heart, Send, MoreHorizontal, Pause, Play } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 
 const STORY_DURATION = 5000; // 5 seconds per story
 const PROGRESS_INTERVAL = 50; // Update every 50ms for smooth animation
+const SWIPE_THRESHOLD = 50; // Minimum swipe distance to trigger navigation
 
 const StoriesViewer = () => {
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [hasEnded, setHasEnded] = useState(false);
+  
+  // Swipe gesture state
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
-  const stories = [
+  // Fetch stories from database
+  const { data: stories = [], isLoading } = useQuery({
+    queryKey: ['stories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stories')
+        .select('*')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fallback mock data if no stories in DB
+  const displayStories = stories.length > 0 ? stories.map(s => ({
+    id: s.id,
+    user: { 
+      name: `User ${s.user_id.slice(0, 4)}`, 
+      avatar: "/placeholder.svg", 
+      isRestaurant: false 
+    },
+    media: s.media_url,
+    timestamp: formatDistanceToNow(new Date(s.created_at || ''), { addSuffix: true }),
+    deal: null
+  })) : [
     {
-      id: 1,
+      id: '1',
       user: { name: "Bella Italia", avatar: "/placeholder.svg", isRestaurant: true },
       media: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
       timestamp: "2h ago",
       deal: "20% off all pasta dishes today!"
     },
     {
-      id: 2,
+      id: '2',
       user: { name: "Taco Fiesta", avatar: "/placeholder.svg", isRestaurant: true },
       media: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800",
       timestamp: "4h ago",
       deal: "Buy 2 tacos, get 1 free!"
     },
     {
-      id: 3,
+      id: '3',
       user: { name: "Sarah Chen", avatar: "/placeholder.svg", isRestaurant: false },
       media: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
-      timestamp: "6h ago"
+      timestamp: "6h ago",
+      deal: null
     }
   ];
 
-  const currentStory = stories[currentStoryIndex];
+  const currentStory = displayStories[currentStoryIndex];
+
+  const goToFeed = useCallback(() => {
+    navigate('/feed');
+  }, [navigate]);
 
   const nextStory = useCallback(() => {
-    if (currentStoryIndex < stories.length - 1) {
+    if (currentStoryIndex < displayStories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
       setProgress(0);
     } else {
-      navigate(-1);
+      // Last story finished - go back to feed
+      setHasEnded(true);
+      goToFeed();
     }
-  }, [currentStoryIndex, stories.length, navigate]);
+  }, [currentStoryIndex, displayStories.length, goToFeed]);
 
-  const prevStory = () => {
+  const prevStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(prev => prev - 1);
       setProgress(0);
     }
+  }, [currentStoryIndex]);
+
+  // Swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    setIsPaused(false);
+    
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    
+    const swipeDistance = touchStartX.current - touchEndX.current;
+    
+    if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
+      if (swipeDistance > 0) {
+        // Swiped left - next story
+        nextStory();
+      } else {
+        // Swiped right - previous story
+        prevStory();
+      }
+    }
+    
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   // Auto-progress timer
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || hasEnded || isLoading) return;
 
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -71,7 +145,7 @@ const StoriesViewer = () => {
     }, PROGRESS_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [isPaused, nextStory]);
+  }, [isPaused, hasEnded, isLoading, nextStory]);
 
   // Reset progress when story changes
   useEffect(() => {
@@ -82,18 +156,47 @@ const StoriesViewer = () => {
     setIsPaused(prev => !prev);
   };
 
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-white animate-spin" />
+      </div>
+    );
+  }
+
+  if (!currentStory) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-white text-center">
+          <p>No stories available</p>
+          <Button variant="outline" className="mt-4" onClick={goToFeed}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
       {/* Story Container */}
-      <div className="relative w-full max-w-md h-full">
+      <div 
+        className="relative w-full max-w-md h-full"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Progress Bars */}
         <div className="absolute top-4 left-4 right-4 z-10 flex gap-1">
-          {stories.map((_, index) => (
-            <Progress
-              key={index}
-              value={index < currentStoryIndex ? 100 : index === currentStoryIndex ? progress : 0}
-              className="h-1 flex-1 bg-white/30"
-            />
+          {displayStories.map((_, index) => (
+            <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white transition-all duration-75 ease-linear"
+                style={{ 
+                  width: `${index < currentStoryIndex ? 100 : index === currentStoryIndex ? progress : 0}%` 
+                }}
+              />
+            </div>
           ))}
         </div>
 
@@ -122,7 +225,7 @@ const StoriesViewer = () => {
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/20"
-              onClick={() => navigate(-1)}
+              onClick={goToFeed}
             >
               <X className="h-6 w-6" />
             </Button>
@@ -133,40 +236,39 @@ const StoriesViewer = () => {
         <img
           src={currentStory.media}
           alt="Story"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover select-none"
           onMouseDown={() => setIsPaused(true)}
           onMouseUp={() => setIsPaused(false)}
           onMouseLeave={() => setIsPaused(false)}
-          onTouchStart={() => setIsPaused(true)}
-          onTouchEnd={() => setIsPaused(false)}
+          draggable={false}
         />
 
-        {/* Navigation Areas */}
+        {/* Navigation Areas (for click/tap) */}
         <div
-          className="absolute left-0 top-0 w-1/3 h-full cursor-pointer"
+          className="absolute left-0 top-20 bottom-32 w-1/3 cursor-pointer"
           onClick={prevStory}
         />
         <div
-          className="absolute right-0 top-0 w-1/3 h-full cursor-pointer"
+          className="absolute right-0 top-20 bottom-32 w-1/3 cursor-pointer"
           onClick={nextStory}
         />
 
-        {/* Navigation Arrows (visible on hover) */}
+        {/* Navigation Arrows (visible on desktop) */}
         {currentStoryIndex > 0 && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex"
             onClick={prevStory}
           >
             <ChevronLeft className="h-8 w-8" />
           </Button>
         )}
-        {currentStoryIndex < stories.length - 1 && (
+        {currentStoryIndex < displayStories.length - 1 && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 hidden md:flex"
             onClick={nextStory}
           >
             <ChevronRight className="h-8 w-8" />
