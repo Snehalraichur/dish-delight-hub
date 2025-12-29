@@ -4,3 +4,5 @@ export { TierProgressBar } from './TierProgressBar';
 export { DealCounter } from './DealCounter';
 export { QRRedemptionModal } from './QRRedemptionModal';
 export { AutoDealTag } from './AutoDealTag';
+export { StreakLeaderboard } from './StreakLeaderboard';
+export { RewardCatalog } from './RewardCatalog';
