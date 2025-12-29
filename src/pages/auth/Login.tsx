@@ -67,7 +67,7 @@ export default function Login() {
                 key={r}
                 type="button"
                 onClick={() => setRole(r)}
-                className={`py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                className={`py-2 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-medium transition-all truncate ${
                   role === r
                     ? 'gradient-primary text-primary-foreground shadow-md'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
