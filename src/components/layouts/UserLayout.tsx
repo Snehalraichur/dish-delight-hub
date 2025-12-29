@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, Wallet, Bell, User } from 'lucide-react';
+import { Home, Search, Wallet, CalendarDays, User, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserLayoutProps {
@@ -11,7 +11,7 @@ const navItems = [
   { path: '/feed', icon: Home, label: 'Home' },
   { path: '/search', icon: Search, label: 'Search' },
   { path: '/wallet', icon: Wallet, label: 'Wallet' },
-  { path: '/notifications', icon: Bell, label: 'Alerts' },
+  { path: '/events', icon: CalendarDays, label: 'Events' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
