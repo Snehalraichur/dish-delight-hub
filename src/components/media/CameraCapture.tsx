@@ -26,6 +26,7 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
   const [mode, setMode] = useState<"photo" | "video">("photo");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isRestartingCamera, setIsRestartingCamera] = useState(false);
 
   const startCamera = useCallback(async () => {
     try {
@@ -60,26 +61,55 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
     }
   }, [stream]);
 
+  // Separate effect for initial camera start
   useEffect(() => {
-    if (isOpen && !capturedImage && !capturedVideo) {
-      // Stop existing stream first when mode changes (to get audio for video mode)
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-        // Small delay to ensure camera is released before restarting
-        setTimeout(() => {
-          startCamera();
-        }, 100);
-      } else {
-        startCamera();
-      }
+    if (isOpen && !capturedImage && !capturedVideo && !isRestartingCamera) {
+      startCamera();
     }
     return () => {
       if (!isOpen) {
         stopCamera();
       }
     };
-  }, [isOpen, facingMode, capturedImage, capturedVideo, mode]);
+  }, [isOpen, facingMode, capturedImage, capturedVideo]);
+
+  // Handle mode change - restart camera with/without audio
+  const handleModeChange = async (newMode: "photo" | "video") => {
+    if (newMode === mode) return;
+    
+    setIsRestartingCamera(true);
+    
+    // Stop current stream
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    
+    // Update mode
+    setMode(newMode);
+    
+    // Small delay then restart camera
+    setTimeout(async () => {
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 },
+          },
+          audio: newMode === "video",
+        });
+        setStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      } catch (error: any) {
+        console.error("Camera restart error:", error);
+        toast.error("Could not restart camera. Please try again.");
+      }
+      setIsRestartingCamera(false);
+    }, 150);
+  };
 
   // Recording timer
   useEffect(() => {
@@ -275,22 +305,30 @@ export const CameraCapture = ({ isOpen, onClose, onCapture }: CameraCaptureProps
 
         {/* Mode Toggle - Only when not captured and not recording */}
         {!hasCapturedMedia && !isRecording && (
-          <div className="absolute bottom-32 left-0 right-0 z-10 flex justify-center">
-            <div className="flex gap-8">
+          <div className="absolute bottom-36 left-0 right-0 z-20 flex justify-center">
+            <div className="flex gap-1 bg-black/40 backdrop-blur-sm rounded-full p-1">
               <button
-                onClick={() => setMode("photo")}
+                onClick={() => handleModeChange("photo")}
+                disabled={isRestartingCamera}
                 className={cn(
-                  "text-sm font-medium transition-all",
-                  mode === "photo" ? "text-white" : "text-white/50"
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all min-w-[80px]",
+                  mode === "photo" 
+                    ? "bg-white text-black" 
+                    : "text-white/70 hover:text-white",
+                  isRestartingCamera && "opacity-50"
                 )}
               >
                 Photo
               </button>
               <button
-                onClick={() => setMode("video")}
+                onClick={() => handleModeChange("video")}
+                disabled={isRestartingCamera}
                 className={cn(
-                  "text-sm font-medium transition-all",
-                  mode === "video" ? "text-white" : "text-white/50"
+                  "px-6 py-2 rounded-full text-sm font-medium transition-all min-w-[80px]",
+                  mode === "video" 
+                    ? "bg-white text-black" 
+                    : "text-white/70 hover:text-white",
+                  isRestartingCamera && "opacity-50"
                 )}
               >
                 Video
