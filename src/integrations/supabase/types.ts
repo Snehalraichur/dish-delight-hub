@@ -443,6 +443,45 @@ export type Database = {
           },
         ]
       }
+      highlight_stories: {
+        Row: {
+          added_at: string
+          highlight_id: string
+          id: string
+          media_url: string
+          story_id: string
+        }
+        Insert: {
+          added_at?: string
+          highlight_id: string
+          id?: string
+          media_url: string
+          story_id: string
+        }
+        Update: {
+          added_at?: string
+          highlight_id?: string
+          id?: string
+          media_url?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlight_stories_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "story_highlights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highlight_stories_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       likes: {
         Row: {
           created_at: string | null
@@ -777,6 +816,95 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      story_archives: {
+        Row: {
+          archived_at: string
+          created_at: string
+          id: string
+          media_url: string
+          original_story_id: string | null
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string
+          created_at?: string
+          id?: string
+          media_url: string
+          original_story_id?: string | null
+          user_id: string
+        }
+        Update: {
+          archived_at?: string
+          created_at?: string
+          id?: string
+          media_url?: string
+          original_story_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_highlights: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_mentions: {
+        Row: {
+          created_at: string
+          id: string
+          mentioned_user_id: string
+          position_x: number | null
+          position_y: number | null
+          story_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentioned_user_id: string
+          position_x?: number | null
+          position_y?: number | null
+          story_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentioned_user_id?: string
+          position_x?: number | null
+          position_y?: number | null
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_mentions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_reactions: {
         Row: {
