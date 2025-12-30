@@ -50,8 +50,8 @@ export function DealCounter({ dealId, totalClaims, friendsClaimed, onClick }: De
           </div>
           <span className="text-muted-foreground">
             {friendsClaimed.length === 1 
-              ? `${friendsClaimed[0].name} claimed this`
-              : `${friendsClaimed.length} friends claimed this`
+              ? `${friendsClaimed[0].name} grabbed this`
+              : `${friendsClaimed.length} friends grabbed this deal`
             }
           </span>
         </>

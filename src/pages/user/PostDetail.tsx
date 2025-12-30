@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, MapPin, Star, Tag, Clock, Send, MoreHorizontal } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Heart, MessageCircle, Send, Bookmark, MapPin, Star, Tag, Clock, MoreHorizontal } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { LikesListModal, SharePostModal } from '@/components/social';
+import { toast } from 'sonner';
 
 const post = {
   id: '1',
+  user: { id: 'user1', name: 'The Golden Fork', avatar: 'TGF' },
   restaurant: 'The Golden Fork',
   location: 'Downtown, NYC',
-  avatar: 'TGF',
   image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop',
   dish: 'Truffle Risotto',
   caption: 'Our signature Truffle Risotto is back! Made with the finest Italian arborio rice, finished with aged parmesan and freshly shaved black truffles. A dish that speaks to the soul. 🍝✨',
@@ -22,28 +24,67 @@ const post = {
     { id: '2', user: 'John D.', avatar: 'JD', text: 'Had this last week, totally worth it!', time: '1h ago', likes: 12 },
     { id: '3', user: 'Emily R.', avatar: 'ER', text: 'Adding to my must-try list', time: '45m ago', likes: 8 },
   ],
-  deal: { discount: '25% OFF', expires: '2h left' },
+  deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', title: '25% Off Dinner' },
   isLiked: false,
   isSaved: false,
   hashtags: ['#TruffleRisotto', '#ItalianFood', '#FoodPorn', '#NYC', '#FineDining'],
+  likedBy: [
+    { id: 'u1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
+    { id: 'u2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
+    { id: 'u3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
+  ],
 };
+
+// Mock friends list for sharing
+const mockFriends = [
+  { id: 'f1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
+  { id: 'f2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
+  { id: 'f3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
+  { id: 'f4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', username: '@tomw' },
+];
 
 export default function PostDetail() {
   const navigate = useNavigate();
+  const { postId } = useParams();
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [isSaved, setIsSaved] = useState(post.isSaved);
   const [likes, setLikes] = useState(post.likes);
   const [newComment, setNewComment] = useState('');
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const toggleLike = () => {
     setIsLiked(!isLiked);
     setLikes(prev => isLiked ? prev - 1 : prev + 1);
   };
 
+  const toggleSave = () => {
+    setIsSaved(!isSaved);
+    if (!isSaved) {
+      toast.success('Post saved to your collection');
+    } else {
+      toast.info('Post removed from saved');
+    }
+  };
+
   const handleComment = () => {
     if (!newComment.trim()) return;
-    // Handle comment submission
+    toast.success('Comment added!');
     setNewComment('');
+  };
+
+  const handleGrabDeal = () => {
+    toast.success('Deal added to your wallet!', {
+      description: `${post.deal.discount} at ${post.restaurant}`,
+      action: {
+        label: 'View Wallet',
+        onClick: () => navigate('/wallet'),
+      },
+    });
+  };
+
+  const handleUserClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
   };
 
   return (
@@ -89,18 +130,21 @@ export default function PostDetail() {
           >
             {/* Header */}
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <button 
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                onClick={() => handleUserClick(post.user.id)}
+              >
                 <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold">
-                  {post.avatar}
+                  {post.user.avatar}
                 </div>
-                <div>
+                <div className="text-left">
                   <h3 className="font-semibold text-foreground">{post.restaurant}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     {post.location}
                   </p>
                 </div>
-              </div>
+              </button>
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 text-secondary">
                   <Star className="w-4 h-4 fill-current" />
@@ -154,23 +198,28 @@ export default function PostDetail() {
                   <button onClick={toggleLike} className="transition-transform active:scale-90">
                     <Heart className={cn("w-7 h-7", isLiked ? "fill-primary text-primary" : "text-foreground")} />
                   </button>
-                  <button>
+                  <button onClick={() => navigate(`/post/${postId}/comments`)}>
                     <MessageCircle className="w-7 h-7 text-foreground" />
                   </button>
-                  <button>
-                    <Share2 className="w-7 h-7 text-foreground" />
+                  <button onClick={() => setShowShareModal(true)}>
+                    <Send className="w-7 h-7 text-foreground" />
                   </button>
                 </div>
-                <button onClick={() => setIsSaved(!isSaved)} className="transition-transform active:scale-90">
+                <button onClick={toggleSave} className="transition-transform active:scale-90">
                   <Bookmark className={cn("w-7 h-7", isSaved ? "fill-secondary text-secondary" : "text-foreground")} />
                 </button>
               </div>
-              <p className="font-semibold text-foreground text-sm mb-3">{likes.toLocaleString()} likes</p>
+              <button 
+                className="font-semibold text-foreground text-sm mb-3 hover:underline"
+                onClick={() => setShowLikesModal(true)}
+              >
+                {likes.toLocaleString()} likes
+              </button>
 
               {/* Deal CTA */}
               {post.deal && (
-                <Button variant="hero" className="w-full rounded-xl mb-3">
-                  Claim Deal - {post.deal.discount}
+                <Button variant="hero" className="w-full rounded-xl mb-3" onClick={handleGrabDeal}>
+                  Grab this Deal - {post.deal.discount}
                 </Button>
               )}
 
@@ -196,6 +245,25 @@ export default function PostDetail() {
           </motion.div>
         </div>
       </div>
+
+      {/* Likes Modal */}
+      <LikesListModal
+        isOpen={showLikesModal}
+        onClose={() => setShowLikesModal(false)}
+        users={post.likedBy}
+        onUserClick={(userId) => {
+          setShowLikesModal(false);
+          handleUserClick(userId);
+        }}
+      />
+
+      {/* Share Modal */}
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={post.id}
+        friends={mockFriends}
+      />
     </UserLayout>
   );
 }

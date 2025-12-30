@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { StreakTracker, AutoDealTag, DealCounter, QRRedemptionModal } from '@/components/gamification';
+import { AutoDealTag, DealCounter } from '@/components/gamification';
+import { LikesListModal, SharePostModal, FriendsClaimedModal } from '@/components/social';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-// Mock data for posts (stories come from database)
+// Mock data for stories
 const mockStories = [
   { id: 'bella-italia', name: 'Bella Italia', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=100&h=100&fit=crop' },
   { id: 'taco-fiesta', name: 'Taco Fiesta', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&h=100&fit=crop' },
@@ -20,6 +21,7 @@ const mockStories = [
 const posts = [
   {
     id: '1',
+    user: { id: 'user1', name: 'John Doe', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
     restaurant: 'The Golden Fork',
     location: 'Downtown, NYC',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
@@ -27,16 +29,22 @@ const posts = [
     rating: 4.8,
     likes: 1234,
     comments: 89,
-    deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45 },
+    deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45, title: '25% Off Dinner' },
     isLiked: false,
     isSaved: false,
     friendsClaimed: [
       { id: '1', name: 'Sarah', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
       { id: '2', name: 'John', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
     ],
+    likedBy: [
+      { id: 'u1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
+      { id: 'u2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
+      { id: 'u3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
+    ],
   },
   {
     id: '2',
+    user: { id: 'user2', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
     restaurant: 'Sakura Sushi',
     location: 'Midtown, NYC',
     image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&h=600&fit=crop',
@@ -44,7 +52,7 @@ const posts = [
     rating: 4.9,
     likes: 2456,
     comments: 156,
-    deal: { id: 'deal2', discount: '15% OFF', expires: '5h left', expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000), claimCount: 89 },
+    deal: { id: 'deal2', discount: '15% OFF', expires: '5h left', expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000), claimCount: 89, title: '15% Off Any Order' },
     isLiked: true,
     isSaved: true,
     friendsClaimed: [
@@ -53,9 +61,14 @@ const posts = [
       { id: '5', name: 'Lisa', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa' },
       { id: '6', name: 'Tom', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom' },
     ],
+    likedBy: [
+      { id: 'u4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', username: '@tomw' },
+      { id: 'u5', name: 'Lisa Park', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', username: '@lisap' },
+    ],
   },
   {
     id: '3',
+    user: { id: 'user3', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
     restaurant: 'Bella Italia',
     location: 'Little Italy, NYC',
     image: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=600&h=600&fit=crop',
@@ -67,23 +80,27 @@ const posts = [
     isLiked: false,
     isSaved: false,
     friendsClaimed: [],
+    likedBy: [],
   },
 ];
 
-const userStreak = {
-  currentStreak: 12,
-  longestStreak: 21,
-  lastPostDate: '2 hours ago',
-  streakPoints: 120,
-  isAtRisk: false,
-};
+// Mock friends list for sharing
+const mockFriends = [
+  { id: 'f1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
+  { id: 'f2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
+  { id: 'f3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
+  { id: 'f4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', username: '@tomw' },
+  { id: 'f5', name: 'Lisa Park', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', username: '@lisap' },
+];
 
 export default function HomeFeed() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [feedPosts, setFeedPosts] = useState(posts);
-  const [selectedDeal, setSelectedDeal] = useState<typeof posts[0]['deal'] | null>(null);
-  const [showQRModal, setShowQRModal] = useState(false);
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showFriendsClaimedModal, setShowFriendsClaimedModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<typeof posts[0] | null>(null);
 
   // Fetch stories with profile info
   const { data: dbStories = [] } = useQuery({
@@ -170,34 +187,58 @@ export default function HomeFeed() {
   };
 
   const toggleSave = (postId: string) => {
+    const post = feedPosts.find(p => p.id === postId);
     setFeedPosts(prev =>
-      prev.map(post =>
-        post.id === postId
-          ? { ...post, isSaved: !post.isSaved }
-          : post
+      prev.map(p =>
+        p.id === postId
+          ? { ...p, isSaved: !p.isSaved }
+          : p
       )
     );
+    if (post && !post.isSaved) {
+      toast.success('Post saved to your collection');
+    } else {
+      toast.info('Post removed from saved');
+    }
   };
 
-  const handleClaimDeal = (deal: typeof posts[0]['deal'], restaurant: string, location: string) => {
+  const handleGrabDeal = (deal: typeof posts[0]['deal'], restaurant: string) => {
     if (!deal) return;
-    setSelectedDeal({ ...deal, restaurant, location } as any);
-    setShowQRModal(true);
-    toast.success('Deal claimed! Show QR to redeem.');
+    toast.success('Deal added to your wallet!', {
+      description: `${deal.discount} at ${restaurant}`,
+      action: {
+        label: 'View Wallet',
+        onClick: () => navigate('/wallet'),
+      },
+    });
+  };
+
+  const handleLikesClick = (post: typeof posts[0]) => {
+    setSelectedPost(post);
+    setShowLikesModal(true);
+  };
+
+  const handleShareClick = (post: typeof posts[0]) => {
+    setSelectedPost(post);
+    setShowShareModal(true);
+  };
+
+  const handleFriendsClaimedClick = (post: typeof posts[0]) => {
+    setSelectedPost(post);
+    setShowFriendsClaimedModal(true);
+  };
+
+  const handlePostClick = (postId: string) => {
+    navigate(`/post/${postId}`);
+  };
+
+  const handleUserClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
   };
 
   return (
     <UserLayout>
       <div className="max-w-2xl mx-auto">
-        {/* Streak Tracker - Compact on mobile */}
-        <div className="px-4 py-3">
-          <StreakTracker
-            {...userStreak}
-            compact
-            onClick={() => toast.info('Streak leaderboard coming soon!')}
-          />
-        </div>
-
         {/* Stories */}
         <div className="px-4 py-4 overflow-x-auto scrollbar-hide">
           <div className="flex gap-4">
@@ -248,18 +289,23 @@ export default function HomeFeed() {
             >
               {/* Header */}
               <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-bold">
-                    {post.restaurant.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{post.restaurant}</h3>
+                <button 
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  onClick={() => handleUserClick(post.user.id)}
+                >
+                  <img 
+                    src={post.user.avatar} 
+                    alt={post.user.name}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-foreground">{post.user.name}</h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {post.location}
+                      {post.restaurant} · {post.location}
                     </p>
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center gap-1 text-amber">
                   <Star className="w-4 h-4 fill-current" />
                   <span className="text-sm font-medium">{post.rating}</span>
@@ -267,7 +313,10 @@ export default function HomeFeed() {
               </div>
 
               {/* Image with Auto Deal Tag */}
-              <div className="relative aspect-square">
+              <div 
+                className="relative aspect-square cursor-pointer"
+                onClick={() => handlePostClick(post.id)}
+              >
                 <img
                   src={post.image}
                   alt={post.dish}
@@ -279,7 +328,7 @@ export default function HomeFeed() {
                     discount={post.deal.discount}
                     restaurantName={post.restaurant}
                     claimCount={post.deal.claimCount}
-                    onClick={() => handleClaimDeal(post.deal, post.restaurant, post.location)}
+                    onClick={() => handleGrabDeal(post.deal, post.restaurant)}
                   />
                 )}
               </div>
@@ -299,11 +348,17 @@ export default function HomeFeed() {
                         )}
                       />
                     </button>
-                    <button className="flex items-center gap-1">
+                    <button 
+                      className="flex items-center gap-1"
+                      onClick={() => navigate(`/post/${post.id}/comments`)}
+                    >
                       <MessageCircle className="w-6 h-6 text-foreground" />
                     </button>
-                    <button className="flex items-center gap-1">
-                      <Share2 className="w-6 h-6 text-foreground" />
+                    <button 
+                      className="flex items-center gap-1"
+                      onClick={() => handleShareClick(post)}
+                    >
+                      <Send className="w-6 h-6 text-foreground" />
                     </button>
                   </div>
                   <button
@@ -319,25 +374,36 @@ export default function HomeFeed() {
                   </button>
                 </div>
 
-                <p className="text-sm font-semibold text-foreground mb-1">
+                <button 
+                  className="text-sm font-semibold text-foreground mb-1 hover:underline"
+                  onClick={() => handleLikesClick(post)}
+                >
                   {post.likes.toLocaleString()} likes
-                </p>
+                </button>
                 <p className="text-sm text-foreground">
-                  <span className="font-semibold">{post.restaurant}</span>{' '}
-                  <span className="text-muted-foreground">featured their {post.dish}</span>
+                  <button 
+                    className="font-semibold hover:underline"
+                    onClick={() => handleUserClick(post.user.id)}
+                  >
+                    {post.user.name}
+                  </button>{' '}
+                  <span className="text-muted-foreground">featured {post.dish} at {post.restaurant}</span>
                 </p>
-                <button className="text-sm text-muted-foreground mt-1">
+                <button 
+                  className="text-sm text-muted-foreground mt-1 hover:text-foreground"
+                  onClick={() => navigate(`/post/${post.id}/comments`)}
+                >
                   View all {post.comments} comments
                 </button>
 
-                {/* Social Validation - Friends who claimed */}
+                {/* Social Validation - Friends who grabbed */}
                 {post.deal && post.friendsClaimed.length > 0 && (
                   <div className="mt-3">
                     <DealCounter
                       dealId={post.deal.id}
                       totalClaims={post.deal.claimCount}
                       friendsClaimed={post.friendsClaimed}
-                      onClick={() => toast.info('Friends list coming soon!')}
+                      onClick={() => handleFriendsClaimedClick(post)}
                     />
                   </div>
                 )}
@@ -350,10 +416,10 @@ export default function HomeFeed() {
                     variant="gradient" 
                     size="lg" 
                     className="w-full"
-                    onClick={() => handleClaimDeal(post.deal, post.restaurant, post.location)}
+                    onClick={() => handleGrabDeal(post.deal, post.restaurant)}
                   >
                     <Tag className="w-5 h-5 mr-2" />
-                    Claim Deal - {post.deal.discount}
+                    Grab this Deal - {post.deal.discount}
                     <span className="ml-2 text-xs opacity-80 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {post.deal.expires}
@@ -366,27 +432,36 @@ export default function HomeFeed() {
         </div>
       </div>
 
-      {/* QR Redemption Modal */}
-      {selectedDeal && (
-        <QRRedemptionModal
-          isOpen={showQRModal}
-          onClose={() => {
-            setShowQRModal(false);
-            setSelectedDeal(null);
-          }}
-          deal={{
-            id: selectedDeal.id,
-            name: 'Special Discount',
-            discount: selectedDeal.discount,
-            restaurant: (selectedDeal as any).restaurant || 'Restaurant',
-            location: (selectedDeal as any).location || 'Location',
-            expiresAt: selectedDeal.expiresAt,
-          }}
-          onRedeem={() => {
-            toast.success('Points added to your account!');
-          }}
-        />
-      )}
+      {/* Likes Modal */}
+      <LikesListModal
+        isOpen={showLikesModal}
+        onClose={() => setShowLikesModal(false)}
+        users={selectedPost?.likedBy || []}
+        onUserClick={(userId) => {
+          setShowLikesModal(false);
+          handleUserClick(userId);
+        }}
+      />
+
+      {/* Share Modal */}
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        postId={selectedPost?.id || ''}
+        friends={mockFriends}
+      />
+
+      {/* Friends Claimed Modal */}
+      <FriendsClaimedModal
+        isOpen={showFriendsClaimedModal}
+        onClose={() => setShowFriendsClaimedModal(false)}
+        friends={selectedPost?.friendsClaimed || []}
+        dealTitle={selectedPost?.deal?.title}
+        onUserClick={(userId) => {
+          setShowFriendsClaimedModal(false);
+          handleUserClick(userId);
+        }}
+      />
     </UserLayout>
   );
 }

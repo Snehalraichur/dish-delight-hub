@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Wallet, CalendarDays, User, Bell, LogOut, Settings } from 'lucide-react';
+import { Home, Search, Wallet, CalendarDays, User, Bell, LogOut, Settings, PlusSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ interface UserLayoutProps {
 const navItems = [
   { path: '/feed', icon: Home, label: 'Home' },
   { path: '/search', icon: Search, label: 'Search' },
+  { path: '/create-post', icon: PlusSquare, label: 'Create' },
   { path: '/wallet', icon: Wallet, label: 'Wallet' },
   { path: '/events', icon: CalendarDays, label: 'Events' },
   { path: '/profile', icon: User, label: 'Profile' },
@@ -82,7 +83,7 @@ export function UserLayout({ children }: UserLayoutProps) {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gradient">SnapDish</h1>
             <nav className="flex items-center gap-8">
-              {navItems.filter(item => item.path !== '/profile').map((item) => (
+              {navItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
