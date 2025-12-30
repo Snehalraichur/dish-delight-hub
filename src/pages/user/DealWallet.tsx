@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { QrCode, Clock, Tag, MapPin, ChevronRight, Ticket, Gift, Star, Users } from 'lucide-react';
+import { QrCode, Clock, Tag, MapPin, ChevronRight, Ticket, Gift, Star, Users, Flame } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { QRRedemptionModal, DealCounter, TierProgressBar } from '@/components/gamification';
+import { QRRedemptionModal, DealCounter, TierProgressBar, StreakTracker, StreakLeaderboard } from '@/components/gamification';
 
 interface Deal {
   id: string;
@@ -95,6 +95,14 @@ const redeemedDeals = [
   },
 ];
 
+const userStreak = {
+  currentStreak: 12,
+  longestStreak: 21,
+  lastPostDate: '2 hours ago',
+  streakPoints: 120,
+  isAtRisk: false,
+};
+
 const userTier = {
   currentTier: 'silver' as const,
   currentPoints: 2450,
@@ -108,10 +116,28 @@ const userTier = {
   ],
 };
 
+// Mock leaderboard data
+const leaderboardUsers = [
+  { id: '1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', streak: 45, longestStreak: 45, rank: 1 },
+  { id: '2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', streak: 38, longestStreak: 42, rank: 2 },
+  { id: '3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', streak: 32, longestStreak: 35, rank: 3 },
+  { id: '4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', streak: 28, longestStreak: 30, rank: 4 },
+  { id: '5', name: 'Lisa Park', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', streak: 25, longestStreak: 28, rank: 5 },
+  { id: '6', name: 'You', streak: 12, longestStreak: 21, rank: 15, isCurrentUser: true },
+];
+
+const unlockedDeals = [
+  { id: 'd1', title: 'Free Appetizer at any restaurant', discount: 'FREE', minStreak: 7 },
+  { id: 'd2', title: 'Extra 10% off any deal', discount: '10% EXTRA', minStreak: 14 },
+  { id: 'd3', title: 'VIP Early Access to Flash Sales', discount: 'VIP ACCESS', minStreak: 21 },
+  { id: 'd4', title: 'Free Dessert at Premium Partners', discount: 'FREE', minStreak: 30 },
+];
+
 export default function DealWallet() {
   const [selectedDeal, setSelectedDeal] = useState<string | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const handleRedeemClick = (deal: Deal) => {
     setActiveDeal(deal);
@@ -134,6 +160,24 @@ export default function DealWallet() {
         >
           <h1 className="text-2xl md:text-3xl font-bold font-display text-foreground">Deal Wallet</h1>
           <p className="text-muted-foreground">Your claimed deals and rewards</p>
+        </motion.div>
+
+        {/* Streak Tracker */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-6"
+        >
+          <StreakTracker
+            currentStreak={userStreak.currentStreak}
+            longestStreak={userStreak.longestStreak}
+            streakPoints={userStreak.streakPoints}
+            lastPostDate={userStreak.lastPostDate}
+            isAtRisk={userStreak.isAtRisk}
+            compact
+            onClick={() => setShowLeaderboard(true)}
+          />
         </motion.div>
 
         {/* Tier Progress Card */}
@@ -320,6 +364,16 @@ export default function DealWallet() {
           onRedeem={handleRedemptionComplete}
         />
       )}
+
+      {/* Streak Leaderboard Modal */}
+      <StreakLeaderboard
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        users={leaderboardUsers}
+        currentUserRank={15}
+        currentUserStreak={userStreak.currentStreak}
+        unlockedDeals={unlockedDeals}
+      />
     </UserLayout>
   );
 }
