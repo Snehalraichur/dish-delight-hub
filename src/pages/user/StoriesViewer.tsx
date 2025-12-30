@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2, Eye, Sparkles, Share2, MoreVertical } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Heart, Send, Pause, Play, Loader2, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -262,27 +262,30 @@ const StoriesViewer = () => {
 
         {/* Header */}
         <div className="absolute top-10 left-4 right-4 z-10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button 
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            onClick={() => navigate(`/profile/${currentStory.userId}`)}
+          >
             <Avatar className="h-10 w-10 border-2 border-white">
               <AvatarImage src={currentStory.user.avatar} />
               <AvatarFallback>{currentStory.user.name[0]}</AvatarFallback>
             </Avatar>
-            <div>
+            <div className="text-left">
               <p className="text-white font-medium text-sm">{currentStory.user.name}</p>
               <div className="flex items-center gap-2 text-white/70 text-xs">
                 <span>{currentStory.timestamp}</span>
                 {isOwnStory && (
-                  <button 
-                    onClick={() => { setShowViewers(true); setIsPaused(true); }}
-                    className="flex items-center gap-1 hover:text-white transition-colors"
+                  <span 
+                    onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
+                    className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
                   >
                     <Eye className="h-3 w-3" />
                     {viewCount}
-                  </button>
+                  </span>
                 )}
               </div>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-1">
             {isOwnStory && (
               <Button
@@ -294,14 +297,6 @@ const StoriesViewer = () => {
                 <Sparkles className="h-5 w-5" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20"
-              onClick={handleShare}
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
