@@ -264,14 +264,14 @@ const StoriesViewer = () => {
         <div className="absolute top-10 left-4 right-4 z-10 flex items-center justify-between">
           <button 
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-            onClick={() => navigate(`/profile/${currentStory.userId}`)}
+            onClick={() => navigate(`/profile/${currentUserStories?.userId}`)}
           >
             <Avatar className="h-10 w-10 border-2 border-white">
-              <AvatarImage src={currentStory.user.avatar} />
-              <AvatarFallback>{currentStory.user.name[0]}</AvatarFallback>
+              <AvatarImage src={currentUserStories?.user.avatar} />
+              <AvatarFallback>{currentUserStories?.user.name[0]}</AvatarFallback>
             </Avatar>
             <div className="text-left">
-              <p className="text-white font-medium text-sm">{currentStory.user.name}</p>
+              <p className="text-white font-medium text-sm">{currentUserStories?.user.name}</p>
               <div className="flex items-center gap-2 text-white/70 text-xs">
                 <span>{currentStory.timestamp}</span>
                 {isOwnStory && (

@@ -24,7 +24,8 @@ const posts = [
     user: { id: 'user1', name: 'John Doe', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
     restaurant: { id: 'rest1', name: 'The Golden Fork' },
     location: 'Downtown, NYC',
-    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
+    media: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
+    mediaType: 'image' as const,
     dish: 'Truffle Risotto',
     rating: 4.8,
     likes: 1234,
@@ -34,8 +35,8 @@ const posts = [
     isLiked: false,
     isSaved: false,
     friendsClaimed: [
-      { id: '1', name: 'Sarah', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-      { id: '2', name: 'John', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
+      { id: 'friend1', name: 'Sarah', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
+      { id: 'friend2', name: 'John', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
     ],
     likedBy: [
       { id: 'u1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
@@ -48,7 +49,8 @@ const posts = [
     user: { id: 'user2', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
     restaurant: { id: 'rest2', name: 'Sakura Sushi' },
     location: 'Midtown, NYC',
-    image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&h=600&fit=crop',
+    media: 'https://videos.pexels.com/video-files/3296398/3296398-hd_1920_1080_25fps.mp4',
+    mediaType: 'video' as const,
     dish: 'Chef\'s Special Omakase',
     rating: 4.9,
     likes: 2456,
@@ -58,10 +60,10 @@ const posts = [
     isLiked: true,
     isSaved: true,
     friendsClaimed: [
-      { id: '3', name: 'Emily', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily' },
-      { id: '4', name: 'Mike', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
-      { id: '5', name: 'Lisa', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa' },
-      { id: '6', name: 'Tom', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom' },
+      { id: 'friend3', name: 'Emily', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily' },
+      { id: 'friend4', name: 'Mike', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
+      { id: 'friend5', name: 'Lisa', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa' },
+      { id: 'friend6', name: 'Tom', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom' },
     ],
     likedBy: [
       { id: 'u4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', username: '@tomw' },
@@ -73,7 +75,8 @@ const posts = [
     user: { id: 'user3', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
     restaurant: { id: 'rest3', name: 'Bella Italia' },
     location: 'Little Italy, NYC',
-    image: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=600&h=600&fit=crop',
+    media: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=600&h=600&fit=crop',
+    mediaType: 'image' as const,
     dish: 'Margherita Pizza',
     rating: 4.7,
     likes: 987,
@@ -84,6 +87,28 @@ const posts = [
     isSaved: false,
     friendsClaimed: [],
     likedBy: [],
+  },
+  {
+    id: '4',
+    user: { id: 'user4', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily' },
+    restaurant: { id: 'rest4', name: 'Dragon Palace' },
+    location: 'Chinatown, NYC',
+    media: 'https://videos.pexels.com/video-files/4253707/4253707-hd_1920_1080_24fps.mp4',
+    mediaType: 'video' as const,
+    dish: 'Dim Sum Platter',
+    rating: 4.6,
+    likes: 1567,
+    comments: 78,
+    shares: 34,
+    deal: { id: 'deal4', discount: '20% OFF', expires: '3h left', expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000), claimCount: 32, remaining: 18, title: '20% Off Dim Sum' },
+    isLiked: false,
+    isSaved: false,
+    friendsClaimed: [
+      { id: 'friend7', name: 'Alex', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex' },
+    ],
+    likedBy: [
+      { id: 'u6', name: 'Alex Kim', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', username: '@alexk' },
+    ],
   },
 ];
 
@@ -412,16 +437,27 @@ export default function HomeFeed() {
                 </div>
               </div>
 
-              {/* Image with Auto Deal Tag */}
+              {/* Media with Auto Deal Tag */}
               <div 
                 className="relative aspect-square cursor-pointer"
                 onClick={() => handleImageClick(post.id, post)}
               >
-                <img
-                  src={post.image}
-                  alt={post.dish}
-                  className="w-full h-full object-cover"
-                />
+                {post.mediaType === 'video' ? (
+                  <video
+                    src={post.media}
+                    className="w-full h-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={post.media}
+                    alt={post.dish}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 {post.deal && (
                   <AutoDealTag
                     dealId={post.deal.id}
@@ -461,6 +497,11 @@ export default function HomeFeed() {
                           post.isLiked ? "fill-coral text-coral" : "text-foreground"
                         )}
                       />
+                    </button>
+                    <button 
+                      className="flex items-center gap-1"
+                      onClick={() => handleLikesClick(post)}
+                    >
                       <span className="text-sm font-medium text-foreground">{post.likes}</span>
                     </button>
                     <button 
@@ -490,13 +531,6 @@ export default function HomeFeed() {
                     />
                   </button>
                 </div>
-
-                <button 
-                  className="text-sm font-semibold text-foreground mb-1 hover:underline"
-                  onClick={() => handleLikesClick(post)}
-                >
-                  {post.likes.toLocaleString()} likes
-                </button>
                 <p className="text-sm text-foreground">
                   <button 
                     className="font-semibold hover:underline"
