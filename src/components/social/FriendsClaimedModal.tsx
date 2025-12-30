@@ -42,7 +42,7 @@ export function FriendsClaimedModal({ isOpen, onClose, friends, dealTitle, onUse
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+              className="flex items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
               onClick={() => onUserClick?.(friend.id)}
             >
               <div className="flex items-center gap-3">
@@ -57,9 +57,6 @@ export function FriendsClaimedModal({ isOpen, onClose, friends, dealTitle, onUse
                   <p className="text-xs text-muted-foreground">Grabbed this deal</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                View Profile
-              </Button>
             </motion.div>
           ))}
           {friends.length === 0 && (

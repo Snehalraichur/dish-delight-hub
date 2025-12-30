@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Heart, MessageCircle, Send, Bookmark, MapPin, Star, Tag, Clock, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Tag, Clock, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { LikesListModal, SharePostModal } from '@/components/social';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -24,35 +22,28 @@ const defaultPost = {
   user: { id: 'user1', name: 'The Golden Fork', avatar: 'TGF' },
   restaurant: { id: 'rest1', name: 'The Golden Fork' },
   location: 'Downtown, NYC',
-  image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop',
+  media: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop',
   mediaType: 'image' as 'image' | 'video',
   dish: 'Truffle Risotto',
   caption: 'Our signature Truffle Risotto is back! Made with the finest Italian arborio rice, finished with aged parmesan and freshly shaved black truffles. A dish that speaks to the soul. 🍝✨',
   rating: 4.8,
   likes: 1234,
-  comments: [
-    { id: '1', user: 'Sarah M.', avatar: 'SM', text: 'This looks absolutely divine! 😍', time: '2h ago', likes: 24 },
-    { id: '2', user: 'John D.', avatar: 'JD', text: 'Had this last week, totally worth it!', time: '1h ago', likes: 12 },
-    { id: '3', user: 'Emily R.', avatar: 'ER', text: 'Adding to my must-try list', time: '45m ago', likes: 8 },
-  ],
-  deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', title: '25% Off Dinner', remaining: 5 },
+  deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45, remaining: 5, title: '25% Off Dinner' },
   isLiked: false,
   isSaved: false,
   hashtags: ['#TruffleRisotto', '#ItalianFood', '#FoodPorn', '#NYC', '#FineDining'],
-  likedBy: [
-    { id: 'u1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
-    { id: 'u2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
-    { id: 'u3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
-  ],
 };
 
-// Mock friends list for sharing
-const mockFriends = [
-  { id: 'f1', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', username: '@sarahchen' },
-  { id: 'f2', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', username: '@mikej' },
-  { id: 'f3', name: 'Emily Rose', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily', username: '@emilyrose' },
-  { id: 'f4', name: 'Tom Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', username: '@tomw' },
-];
+// Helper to calculate hours left
+function getHoursLeft(expiresAt: Date): string {
+  const now = new Date();
+  const diff = expiresAt.getTime() - now.getTime();
+  if (diff <= 0) return 'Expired';
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
+}
 
 export default function PostDetail() {
   const navigate = useNavigate();
@@ -67,23 +58,17 @@ export default function PostDetail() {
     user: passedPostData.user,
     restaurant: passedPostData.restaurant,
     location: passedPostData.location,
-    image: passedPostData.image,
+    media: passedPostData.media || passedPostData.image,
+    mediaType: passedPostData.mediaType || 'image',
     dish: passedPostData.dish,
     rating: passedPostData.rating,
     likes: passedPostData.likes,
     deal: passedPostData.deal,
     isLiked: passedPostData.isLiked,
     isSaved: passedPostData.isSaved,
-    likedBy: passedPostData.likedBy,
   } : defaultPost;
   
-  const [post, setPost] = useState(postData);
-  const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [isSaved, setIsSaved] = useState(post.isSaved);
-  const [likes, setLikes] = useState(post.likes);
-  const [newComment, setNewComment] = useState('');
-  const [showLikesModal, setShowLikesModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [post] = useState(postData);
   const [showRatingsModal, setShowRatingsModal] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -98,26 +83,6 @@ export default function PostDetail() {
     }
     return () => clearTimeout(timeout);
   }, [isPlaying, post.mediaType]);
-
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(prev => isLiked ? prev - 1 : prev + 1);
-  };
-
-  const toggleSave = () => {
-    setIsSaved(!isSaved);
-    if (!isSaved) {
-      toast.success('Post saved to your collection');
-    } else {
-      toast.info('Post removed from saved');
-    }
-  };
-
-  const handleComment = () => {
-    if (!newComment.trim()) return;
-    toast.success('Comment added!');
-    setNewComment('');
-  };
 
   const handleGrabDeal = () => {
     if (post.deal?.remaining === 0) {
@@ -183,7 +148,7 @@ export default function PostDetail() {
               <>
                 <video
                   ref={videoRef}
-                  src={post.image}
+                  src={post.media}
                   className="w-full h-full object-cover"
                   loop
                   muted={isMuted}
@@ -215,42 +180,6 @@ export default function PostDetail() {
                   )}
                 </AnimatePresence>
 
-                {/* Side Controls */}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={toggleLike}
-                    className={cn(
-                      "w-12 h-12 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm",
-                      isLiked ? "text-coral" : "text-white"
-                    )}
-                  >
-                    <Heart className={cn("w-6 h-6", isLiked && "fill-current")} />
-                  </motion.button>
-                  <button
-                    onClick={() => navigate(`/post/${postId}/comments`)}
-                    className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center text-white backdrop-blur-sm"
-                  >
-                    <MessageCircle className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={() => setShowShareModal(true)}
-                    className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center text-white backdrop-blur-sm"
-                  >
-                    <Send className="w-6 h-6" />
-                  </button>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={toggleSave}
-                    className={cn(
-                      "w-12 h-12 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm",
-                      isSaved ? "text-amber" : "text-white"
-                    )}
-                  >
-                    <Bookmark className={cn("w-6 h-6", isSaved && "fill-current")} />
-                  </motion.button>
-                </div>
-
                 {/* Mute button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleMute(); }}
@@ -262,7 +191,7 @@ export default function PostDetail() {
             ) : (
               <>
                 <img
-                  src={post.image}
+                  src={post.media}
                   alt={post.dish}
                   className="w-full h-full object-cover"
                 />
@@ -276,14 +205,14 @@ export default function PostDetail() {
               </>
             )}
             
+            {/* Deal Tag matching the feed style */}
             {post.deal && (
-              <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-                <Tag className="w-4 h-4" />
-                <span className="font-bold">{post.deal.discount}</span>
-                <span className="text-sm opacity-80 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {post.deal.expires}
-                </span>
+              <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-2 rounded-xl shadow-lg">
+                <div className="flex flex-col items-end">
+                  <span className="font-bold text-sm">{post.deal.discount}</span>
+                  <span className="text-xs opacity-80">{post.deal.claimCount} claimed</span>
+                  <span className="text-xs opacity-80">{post.deal.remaining} left</span>
+                </div>
               </div>
             )}
           </motion.div>
@@ -333,101 +262,22 @@ export default function PostDetail() {
               </div>
             </div>
 
-            {/* Comments */}
-            <div className="flex-1 p-4 overflow-y-auto max-h-64 space-y-4">
-              {post.comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground flex-shrink-0">
-                    {comment.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">
-                      <span className="font-semibold text-foreground">{comment.user}</span>{' '}
-                      <span className="text-foreground">{comment.text}</span>
-                    </p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>{comment.time}</span>
-                      <button className="hover:text-foreground">{comment.likes} likes</button>
-                      <button className="hover:text-foreground">Reply</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Actions */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-4">
-                  <button onClick={toggleLike} className="transition-transform active:scale-90">
-                    <Heart className={cn("w-7 h-7", isLiked ? "fill-primary text-primary" : "text-foreground")} />
-                  </button>
-                  <button onClick={() => navigate(`/post/${postId}/comments`)}>
-                    <MessageCircle className="w-7 h-7 text-foreground" />
-                  </button>
-                  <button onClick={() => setShowShareModal(true)}>
-                    <Send className="w-7 h-7 text-foreground" />
-                  </button>
-                </div>
-                <button onClick={toggleSave} className="transition-transform active:scale-90">
-                  <Bookmark className={cn("w-7 h-7", isSaved ? "fill-secondary text-secondary" : "text-foreground")} />
-                </button>
-              </div>
-              <button 
-                className="font-semibold text-foreground text-sm mb-3 hover:underline"
-                onClick={() => setShowLikesModal(true)}
-              >
-                {likes.toLocaleString()} likes
-              </button>
-
-              {/* Deal CTA */}
-              {post.deal && (
-                <Button variant="hero" className="w-full rounded-xl mb-3" onClick={handleGrabDeal}>
+            {/* Deal CTA */}
+            {post.deal && (
+              <div className="p-4">
+                <Button variant="hero" className="w-full rounded-xl" onClick={handleGrabDeal}>
+                  <Tag className="w-5 h-5 mr-2" />
                   Grab this Deal - {post.deal.discount}
-                </Button>
-              )}
-
-              {/* Comment Input */}
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 h-10 rounded-xl"
-                />
-                <Button
-                  variant="gradient"
-                  size="icon"
-                  onClick={handleComment}
-                  disabled={!newComment.trim()}
-                  className="h-10 w-10 rounded-xl"
-                >
-                  <Send className="w-4 h-4" />
+                  <span className="ml-2 text-xs opacity-80 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {getHoursLeft(post.deal.expiresAt)}
+                  </span>
                 </Button>
               </div>
-            </div>
+            )}
           </motion.div>
         </div>
       </div>
-
-      {/* Likes Modal */}
-      <LikesListModal
-        isOpen={showLikesModal}
-        onClose={() => setShowLikesModal(false)}
-        users={post.likedBy}
-        onUserClick={(userId) => {
-          setShowLikesModal(false);
-          handleUserClick(userId);
-        }}
-      />
-
-      {/* Share Modal */}
-      <SharePostModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        postId={post.id}
-        friends={mockFriends}
-      />
 
       {/* Ratings Modal */}
       <Dialog open={showRatingsModal} onOpenChange={setShowRatingsModal}>
