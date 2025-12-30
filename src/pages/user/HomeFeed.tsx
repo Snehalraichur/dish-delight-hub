@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Send, Bookmark, Plus, MapPin, Star, Clock, Tag, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, MessageCircle, Send, Bookmark, Plus, MapPin, Star, Tag, Clock } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,14 +22,15 @@ const posts = [
   {
     id: '1',
     user: { id: 'user1', name: 'John Doe', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John' },
-    restaurant: 'The Golden Fork',
+    restaurant: { id: 'rest1', name: 'The Golden Fork' },
     location: 'Downtown, NYC',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=600&fit=crop',
     dish: 'Truffle Risotto',
     rating: 4.8,
     likes: 1234,
     comments: 89,
-    deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45, title: '25% Off Dinner' },
+    shares: 45,
+    deal: { id: 'deal1', discount: '25% OFF', expires: '2h left', expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), claimCount: 45, remaining: 5, title: '25% Off Dinner' },
     isLiked: false,
     isSaved: false,
     friendsClaimed: [
@@ -45,14 +46,15 @@ const posts = [
   {
     id: '2',
     user: { id: 'user2', name: 'Sarah Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
-    restaurant: 'Sakura Sushi',
+    restaurant: { id: 'rest2', name: 'Sakura Sushi' },
     location: 'Midtown, NYC',
     image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&h=600&fit=crop',
     dish: 'Chef\'s Special Omakase',
     rating: 4.9,
     likes: 2456,
     comments: 156,
-    deal: { id: 'deal2', discount: '15% OFF', expires: '5h left', expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000), claimCount: 89, title: '15% Off Any Order' },
+    shares: 89,
+    deal: { id: 'deal2', discount: '15% OFF', expires: '5h left', expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000), claimCount: 89, remaining: 0, title: '15% Off Any Order' },
     isLiked: true,
     isSaved: true,
     friendsClaimed: [
@@ -69,13 +71,14 @@ const posts = [
   {
     id: '3',
     user: { id: 'user3', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike' },
-    restaurant: 'Bella Italia',
+    restaurant: { id: 'rest3', name: 'Bella Italia' },
     location: 'Little Italy, NYC',
     image: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=600&h=600&fit=crop',
     dish: 'Margherita Pizza',
     rating: 4.7,
     likes: 987,
     comments: 45,
+    shares: 23,
     deal: null,
     isLiked: false,
     isSaved: false,
@@ -101,9 +104,13 @@ export default function HomeFeed() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFriendsClaimedModal, setShowFriendsClaimedModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<typeof posts[0] | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [doubleTapPostId, setDoubleTapPostId] = useState<string | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
 
   // Fetch stories with profile info
-  const { data: dbStories = [] } = useQuery({
+  const { data: dbStories = [], refetch: refetchStories } = useQuery({
     queryKey: ['stories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -122,6 +129,7 @@ export default function HomeFeed() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Real-time subscription for new stories
@@ -204,6 +212,10 @@ export default function HomeFeed() {
 
   const handleGrabDeal = (deal: typeof posts[0]['deal'], restaurant: string) => {
     if (!deal) return;
+    if (deal.remaining === 0) {
+      toast.error('Sold out!', { description: 'This deal is no longer available.' });
+      return;
+    }
     toast.success('Deal added to your wallet!', {
       description: `${deal.discount} at ${restaurant}`,
       action: {
@@ -228,17 +240,99 @@ export default function HomeFeed() {
     setShowFriendsClaimedModal(true);
   };
 
-  const handlePostClick = (postId: string) => {
-    navigate(`/post/${postId}`);
+  const handlePostClick = (post: typeof posts[0]) => {
+    navigate(`/post/${post.id}`, { state: { postData: post } });
   };
 
   const handleUserClick = (userId: string) => {
     navigate(`/profile/${userId}`);
   };
 
+  const handleRestaurantClick = (restaurantId: string) => {
+    navigate(`/restaurant/${restaurantId}`);
+  };
+
+  // Pull to refresh
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (feedRef.current?.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const touchY = e.touches[0].clientY;
+    const diff = touchY - touchStartY.current;
+    
+    if (diff > 80 && !isRefreshing) {
+      setIsRefreshing(true);
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    touchStartY.current = null;
+    if (isRefreshing) {
+      await refetchStories();
+      // Simulate refreshing posts too
+      setTimeout(() => {
+        setIsRefreshing(false);
+        toast.success('Feed refreshed');
+      }, 1000);
+    }
+  };
+
+  // Double tap to like
+  const handleDoubleTap = useCallback((postId: string) => {
+    const post = feedPosts.find(p => p.id === postId);
+    if (post && !post.isLiked) {
+      toggleLike(postId);
+      setDoubleTapPostId(postId);
+      setTimeout(() => setDoubleTapPostId(null), 1000);
+    }
+  }, [feedPosts]);
+
+  const lastTapRef = useRef<{ time: number; postId: string } | null>(null);
+
+  const handleImageClick = (postId: string, post: typeof posts[0]) => {
+    const now = Date.now();
+    if (lastTapRef.current && lastTapRef.current.postId === postId && now - lastTapRef.current.time < 300) {
+      handleDoubleTap(postId);
+      lastTapRef.current = null;
+    } else {
+      lastTapRef.current = { time: now, postId };
+      // Navigate after a short delay if no double-tap
+      setTimeout(() => {
+        if (lastTapRef.current?.postId === postId) {
+          handlePostClick(post);
+          lastTapRef.current = null;
+        }
+      }, 300);
+    }
+  };
+
   return (
     <UserLayout>
-      <div className="max-w-2xl mx-auto">
+      <div 
+        ref={feedRef}
+        className="max-w-2xl mx-auto"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Pull to refresh indicator */}
+        <AnimatePresence>
+          {isRefreshing && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 60, opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="flex items-center justify-center"
+            >
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Stories */}
         <div className="px-4 py-4 overflow-x-auto scrollbar-hide">
           <div className="flex gap-4">
@@ -300,10 +394,16 @@ export default function HomeFeed() {
                   />
                   <div className="text-left">
                     <h3 className="font-semibold text-foreground">{post.user.name}</h3>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <button 
+                      className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRestaurantClick(post.restaurant.id);
+                      }}
+                    >
                       <MapPin className="w-3 h-3" />
-                      {post.restaurant} · {post.location}
-                    </p>
+                      {post.restaurant.name} · {post.location}
+                    </button>
                   </div>
                 </button>
                 <div className="flex items-center gap-1 text-amber">
@@ -315,7 +415,7 @@ export default function HomeFeed() {
               {/* Image with Auto Deal Tag */}
               <div 
                 className="relative aspect-square cursor-pointer"
-                onClick={() => handlePostClick(post.id)}
+                onClick={() => handleImageClick(post.id, post)}
               >
                 <img
                   src={post.image}
@@ -326,11 +426,25 @@ export default function HomeFeed() {
                   <AutoDealTag
                     dealId={post.deal.id}
                     discount={post.deal.discount}
-                    restaurantName={post.restaurant}
+                    restaurantName={post.restaurant.name}
                     claimCount={post.deal.claimCount}
-                    onClick={() => handleGrabDeal(post.deal, post.restaurant)}
+                    remaining={post.deal.remaining}
                   />
                 )}
+
+                {/* Double tap heart animation */}
+                <AnimatePresence>
+                  {doubleTapPostId === post.id && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1.2, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    >
+                      <Heart className="w-24 h-24 text-white fill-coral drop-shadow-lg" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Actions */}
@@ -347,18 +461,21 @@ export default function HomeFeed() {
                           post.isLiked ? "fill-coral text-coral" : "text-foreground"
                         )}
                       />
+                      <span className="text-sm font-medium text-foreground">{post.likes}</span>
                     </button>
                     <button 
                       className="flex items-center gap-1"
                       onClick={() => navigate(`/post/${post.id}/comments`)}
                     >
                       <MessageCircle className="w-6 h-6 text-foreground" />
+                      <span className="text-sm font-medium text-foreground">{post.comments}</span>
                     </button>
                     <button 
                       className="flex items-center gap-1"
                       onClick={() => handleShareClick(post)}
                     >
                       <Send className="w-6 h-6 text-foreground" />
+                      <span className="text-sm font-medium text-foreground">{post.shares}</span>
                     </button>
                   </div>
                   <button
@@ -387,14 +504,8 @@ export default function HomeFeed() {
                   >
                     {post.user.name}
                   </button>{' '}
-                  <span className="text-muted-foreground">featured {post.dish} at {post.restaurant}</span>
+                  <span className="text-muted-foreground">featured {post.dish} at {post.restaurant.name}</span>
                 </p>
-                <button 
-                  className="text-sm text-muted-foreground mt-1 hover:text-foreground"
-                  onClick={() => navigate(`/post/${post.id}/comments`)}
-                >
-                  View all {post.comments} comments
-                </button>
 
                 {/* Social Validation - Friends who grabbed */}
                 {post.deal && post.friendsClaimed.length > 0 && (
@@ -416,7 +527,7 @@ export default function HomeFeed() {
                     variant="gradient" 
                     size="lg" 
                     className="w-full"
-                    onClick={() => handleGrabDeal(post.deal, post.restaurant)}
+                    onClick={() => handleGrabDeal(post.deal, post.restaurant.name)}
                   >
                     <Tag className="w-5 h-5 mr-2" />
                     Grab this Deal - {post.deal.discount}
