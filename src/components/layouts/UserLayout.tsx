@@ -79,42 +79,42 @@ export function UserLayout({ children }: UserLayoutProps) {
 
       {/* Desktop/Tablet Header */}
       <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 lg:px-6 py-3 lg:py-4">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl lg:text-2xl font-bold text-gradient">SnapDish</h1>
-            <nav className="flex items-center gap-3 lg:gap-6 xl:gap-8">
+            <h1 className="text-2xl font-bold text-gradient">SnapDish</h1>
+            <nav className="flex items-center gap-4 lg:gap-8">
               {navItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-1 lg:gap-2 text-xs lg:text-sm font-medium transition-colors hover:text-primary",
+                      "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
                       isActive ? "text-primary" : "text-muted-foreground"
                     )
                   }
                 >
                   <item.icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
+                  <span>{item.label}</span>
                 </NavLink>
               ))}
               <NavLink
                 to="/notifications"
                 className={({ isActive }) =>
                   cn(
-                    "p-1.5 lg:p-2 rounded-full transition-colors relative hover:bg-muted",
+                    "p-2 rounded-full transition-colors relative hover:bg-muted",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )
                 }
               >
-                <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span className="absolute top-0.5 right-0.5 lg:top-1 lg:right-1 w-2 h-2 bg-primary rounded-full" />
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
               </NavLink>
               
               {isProfilePage && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="p-1.5 lg:p-2 hover:bg-muted rounded-full transition-colors">
-                    <Settings className="w-4 h-4 lg:w-5 lg:h-5 text-muted-foreground" />
+                  <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-full transition-colors">
+                    <Settings className="w-5 h-5 text-muted-foreground" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
