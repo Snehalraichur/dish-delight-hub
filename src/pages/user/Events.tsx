@@ -279,23 +279,23 @@ export default function Events() {
           <TabsContent value="events">
             {/* Location Filters */}
             <div className="flex gap-3 mb-4">
-              <Select value={selectedState} onValueChange={(v) => { setSelectedState(v); setSelectedCity(''); }}>
+              <Select value={selectedState || "all"} onValueChange={(v) => { setSelectedState(v === "all" ? "" : v); setSelectedCity(''); }}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Select State" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All States</SelectItem>
+                  <SelectItem value="all">All States</SelectItem>
                   {states.map(state => (
                     <SelectItem key={state} value={state}>{state}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedState}>
+              <Select value={selectedCity || "all"} onValueChange={(v) => setSelectedCity(v === "all" ? "" : v)} disabled={!selectedState}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Select City" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Cities</SelectItem>
+                  <SelectItem value="all">All Cities</SelectItem>
                   {selectedState && citiesByState[selectedState]?.map(city => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
