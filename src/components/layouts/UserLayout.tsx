@@ -140,15 +140,16 @@ export function UserLayout({ children }: UserLayoutProps) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border">
-        <div className="flex items-center justify-around py-2">
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border safe-area-inset-bottom">
+        <div className="flex items-center justify-between px-2 py-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center gap-1 py-2 px-4 rounded-lg transition-all",
+                  "flex flex-col items-center gap-0.5 py-1 px-1 min-w-0 flex-1 transition-all",
                   isActive 
                     ? "text-primary" 
                     : "text-muted-foreground hover:text-foreground"
@@ -158,12 +159,12 @@ export function UserLayout({ children }: UserLayoutProps) {
               {({ isActive }) => (
                 <>
                   <div className={cn(
-                    "p-2 rounded-full transition-all",
+                    "p-1.5 rounded-full transition-all",
                     isActive && "bg-primary/10"
                   )}>
                     <item.icon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-medium">{item.label}</span>
+                  <span className="text-[10px] font-medium truncate">{item.label}</span>
                 </>
               )}
             </NavLink>
