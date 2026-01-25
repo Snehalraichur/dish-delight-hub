@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { QrCode, Clock, Tag, MapPin, ChevronRight, Ticket, Gift, Star, Users, Flame } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { QRRedemptionModal, DealCounter, TierProgressBar, StreakTracker, StreakLeaderboard } from '@/components/gamification';
+import { toast } from 'sonner';
 
 interface Deal {
   id: string;
@@ -127,17 +130,29 @@ const leaderboardUsers = [
 ];
 
 const unlockedDeals = [
-  { id: 'd1', title: 'Free Appetizer at any restaurant', discount: 'FREE', minStreak: 7 },
-  { id: 'd2', title: 'Extra 10% off any deal', discount: '10% EXTRA', minStreak: 14 },
-  { id: 'd3', title: 'VIP Early Access to Flash Sales', discount: 'VIP ACCESS', minStreak: 21 },
-  { id: 'd4', title: 'Free Dessert at Premium Partners', discount: 'FREE', minStreak: 30 },
+  { id: 'd1', title: 'Free Appetizer at any restaurant', discount: 'FREE', minStreak: 7, restaurant: 'Any Partner Restaurant', code: 'STREAK7' },
+  { id: 'd2', title: 'Extra 10% off any deal', discount: '10% EXTRA', minStreak: 14, restaurant: 'All Restaurants', code: 'STREAK14' },
+  { id: 'd3', title: 'VIP Early Access to Flash Sales', discount: 'VIP ACCESS', minStreak: 21, restaurant: 'Platform Wide', code: 'VIPSTREAK' },
+  { id: 'd4', title: 'Free Dessert at Premium Partners', discount: 'FREE', minStreak: 30, restaurant: 'Premium Partners', code: 'PREMIUM30' },
+];
+
+// Available rewards for redemption
+const availableRewards = [
+  { id: 'r1', title: '10% Off Any Order', points: 500, image: '🎫', category: 'Discount' },
+  { id: 'r2', title: 'Free Appetizer', points: 750, image: '🍟', category: 'Free Item' },
+  { id: 'r3', title: 'VIP Event Access', points: 2000, image: '🎉', category: 'Experience' },
+  { id: 'r4', title: 'Free Dessert', points: 400, image: '🍰', category: 'Free Item' },
 ];
 
 export default function DealWallet() {
+  const navigate = useNavigate();
   const [selectedDeal, setSelectedDeal] = useState<string | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [showStreakDealModal, setShowStreakDealModal] = useState(false);
+  const [selectedStreakDeal, setSelectedStreakDeal] = useState<typeof unlockedDeals[0] | null>(null);
 
   const handleRedeemClick = (deal: Deal) => {
     setActiveDeal(deal);
@@ -147,6 +162,43 @@ export default function DealWallet() {
   const handleRedemptionComplete = () => {
     setQrModalOpen(false);
     setActiveDeal(null);
+    toast.success('Deal redeemed successfully!', {
+      description: 'Points have been added to your account.',
+    });
+  };
+
+  const handleRedeemPoints = (reward: typeof availableRewards[0]) => {
+    if (userTier.currentPoints < reward.points) {
+      toast.error('Not enough points', {
+        description: `You need ${reward.points - userTier.currentPoints} more points.`,
+      });
+      return;
+    }
+    toast.success(`${reward.title} redeemed!`, {
+      description: 'Check your wallet for the reward.',
+    });
+    setShowRedeemModal(false);
+  };
+
+  const handleUseStreakDeal = (deal: typeof unlockedDeals[0]) => {
+    if (userStreak.currentStreak < deal.minStreak) {
+      toast.error('Streak requirement not met', {
+        description: `You need a ${deal.minStreak} day streak to unlock this deal.`,
+      });
+      return;
+    }
+    setSelectedStreakDeal(deal);
+    setShowStreakDealModal(true);
+  };
+
+  const handleActivateStreakDeal = () => {
+    if (!selectedStreakDeal) return;
+    toast.success('Deal activated!', {
+      description: `Show code ${selectedStreakDeal.code} at ${selectedStreakDeal.restaurant}`,
+    });
+    setShowStreakDealModal(false);
+    setSelectedStreakDeal(null);
+    setShowLeaderboard(false);
   };
 
   return (
@@ -162,7 +214,7 @@ export default function DealWallet() {
           <p className="text-muted-foreground">Your claimed deals and rewards</p>
         </motion.div>
 
-        {/* Streak Tracker */}
+        {/* Streak Leaderboard Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -214,7 +266,12 @@ export default function DealWallet() {
                 <p className="text-3xl font-bold">{userTier.currentPoints.toLocaleString()}</p>
               </div>
             </div>
-            <Button variant="secondary" size="sm" className="bg-primary-foreground/20 text-primary-foreground border-0 hover:bg-primary-foreground/30">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="bg-primary-foreground/20 text-primary-foreground border-0 hover:bg-primary-foreground/30"
+              onClick={() => setShowRedeemModal(true)}
+            >
               Redeem
             </Button>
           </div>
@@ -365,7 +422,7 @@ export default function DealWallet() {
         />
       )}
 
-      {/* Streak Leaderboard Modal */}
+      {/* Streak Leaderboard Modal with Working Deals */}
       <StreakLeaderboard
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
@@ -373,7 +430,80 @@ export default function DealWallet() {
         currentUserRank={15}
         currentUserStreak={userStreak.currentStreak}
         unlockedDeals={unlockedDeals}
+        onUseDeal={handleUseStreakDeal}
       />
+
+      {/* Redeem Points Modal */}
+      <Dialog open={showRedeemModal} onOpenChange={setShowRedeemModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redeem Points</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You have <span className="font-bold text-primary">{userTier.currentPoints.toLocaleString()}</span> points available
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {availableRewards.map((reward) => {
+                const canRedeem = userTier.currentPoints >= reward.points;
+                return (
+                  <motion.div
+                    key={reward.id}
+                    whileHover={{ scale: canRedeem ? 1.02 : 1 }}
+                    whileTap={{ scale: canRedeem ? 0.98 : 1 }}
+                    className={cn(
+                      "p-4 rounded-xl border-2 text-center cursor-pointer transition-all",
+                      canRedeem 
+                        ? "border-border hover:border-primary" 
+                        : "border-border opacity-50 cursor-not-allowed"
+                    )}
+                    onClick={() => canRedeem && handleRedeemPoints(reward)}
+                  >
+                    <div className="text-4xl mb-2">{reward.image}</div>
+                    <p className="font-medium text-sm">{reward.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{reward.category}</p>
+                    <div className="flex items-center justify-center gap-1 mt-2">
+                      <Star className="w-3 h-3 text-amber" />
+                      <span className="text-sm font-bold">{reward.points}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Streak Deal Activation Modal */}
+      <Dialog open={showStreakDealModal} onOpenChange={setShowStreakDealModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Flame className="w-5 h-5 text-orange-500" />
+              Activate Streak Deal
+            </DialogTitle>
+          </DialogHeader>
+          {selectedStreakDeal && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-primary mb-1">{selectedStreakDeal.discount}</p>
+                <p className="font-medium">{selectedStreakDeal.title}</p>
+                <p className="text-sm text-muted-foreground mt-2">{selectedStreakDeal.restaurant}</p>
+              </div>
+              <div className="bg-muted rounded-xl p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Redemption Code</p>
+                <p className="font-mono font-bold text-2xl">{selectedStreakDeal.code}</p>
+              </div>
+              <Button variant="hero" className="w-full" onClick={handleActivateStreakDeal}>
+                Use at Restaurant
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Show this code to the cashier when paying
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </UserLayout>
   );
 }
