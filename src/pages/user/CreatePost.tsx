@@ -1,36 +1,73 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, Image, MapPin, Tag, X, AtSign, Sparkles } from "lucide-react";
+import { Camera, Image, MapPin, Tag, X, AtSign, Sparkles, Search, Music, Crop, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UserLayout } from "@/components/layouts/UserLayout";
-import { CameraCapture, ImageEditor } from "@/components/media";
+import { CameraCapture } from "@/components/media";
+import { StoryEditor } from "@/components/media/StoryEditor";
+
+// Mock restaurant data for search
+const allRestaurants = [
+  { id: "1", name: "Bella Italia", location: "Downtown", cuisine: "Italian" },
+  { id: "2", name: "Taco Fiesta", location: "Midtown", cuisine: "Mexican" },
+  { id: "3", name: "Sushi Palace", location: "East Side", cuisine: "Japanese" },
+  { id: "4", name: "The Golden Fork", location: "SoHo", cuisine: "American" },
+  { id: "5", name: "Sakura Sushi", location: "Upper East", cuisine: "Japanese" },
+  { id: "6", name: "Dragon Palace", location: "Chinatown", cuisine: "Chinese" },
+  { id: "7", name: "Le Petit Bistro", location: "West Village", cuisine: "French" },
+  { id: "8", name: "Burger Joint", location: "Hell's Kitchen", cuisine: "American" },
+];
+
+// Mock friends for tagging
+const mockFriends = [
+  { id: "f1", name: "Sarah Chen", username: "@sarahchen", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
+  { id: "f2", name: "Mike Johnson", username: "@mikej", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike" },
+  { id: "f3", name: "Emily Rose", username: "@emilyrose", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily" },
+  { id: "f4", name: "Tom Wilson", username: "@tomw", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tom" },
+  { id: "f5", name: "Lisa Park", username: "@lisap", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa" },
+];
 
 const CreatePost = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<string | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof allRestaurants[0] | null>(null);
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = useState("");
+  const [taggedFriends, setTaggedFriends] = useState<typeof mockFriends>([]);
   
   // Camera and editor states
   const [showCamera, setShowCamera] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-
-  const suggestedRestaurants = [
-    { id: "1", name: "Bella Italia", location: "Downtown" },
-    { id: "2", name: "Taco Fiesta", location: "Midtown" },
-    { id: "3", name: "Sushi Palace", location: "East Side" },
-  ];
+  
+  // Search modals
+  const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
+  const [restaurantSearchQuery, setRestaurantSearchQuery] = useState("");
+  const [showFriendTag, setShowFriendTag] = useState(false);
+  const [friendSearchQuery, setFriendSearchQuery] = useState("");
 
   const suggestedHashtags = ["#foodie", "#delicious", "#instafood", "#yummy", "#foodporn", "#homemade"];
+
+  // Filter restaurants based on search
+  const filteredRestaurants = allRestaurants.filter(r => 
+    r.name.toLowerCase().includes(restaurantSearchQuery.toLowerCase()) ||
+    r.cuisine.toLowerCase().includes(restaurantSearchQuery.toLowerCase()) ||
+    r.location.toLowerCase().includes(restaurantSearchQuery.toLowerCase())
+  );
+
+  // Filter friends based on search
+  const filteredFriends = mockFriends.filter(f =>
+    f.name.toLowerCase().includes(friendSearchQuery.toLowerCase()) ||
+    f.username.toLowerCase().includes(friendSearchQuery.toLowerCase())
+  );
 
   const handleTakePhoto = () => {
     setShowCamera(true);
@@ -77,6 +114,15 @@ const CreatePost = () => {
     setHashtags(hashtags.filter(h => h !== tag));
   };
 
+  const toggleFriendTag = (friend: typeof mockFriends[0]) => {
+    if (taggedFriends.find(f => f.id === friend.id)) {
+      setTaggedFriends(taggedFriends.filter(f => f.id !== friend.id));
+    } else {
+      setTaggedFriends([...taggedFriends, friend]);
+      toast.success(`Tagged ${friend.name}`);
+    }
+  };
+
   const handlePost = () => {
     if (!selectedImage) {
       toast.error("Please add an image");
@@ -119,14 +165,32 @@ const CreatePost = () => {
                   alt="Selected"
                   className="w-full aspect-square object-cover rounded-lg"
                 />
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={() => setSelectedImage(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={() => {
+                      setCapturedImage(selectedImage);
+                      setShowEditor(true);
+                    }}
+                  >
+                    <Crop className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => setSelectedImage(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* Tagged friends overlay */}
+                {taggedFriends.length > 0 && (
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 rounded-full px-2 py-1">
+                    <Users className="h-3 w-3 text-white" />
+                    <span className="text-xs text-white">{taggedFriends.length} tagged</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
@@ -169,11 +233,11 @@ const CreatePost = () => {
           onCapture={handleCameraCapture}
         />
 
-        {/* Image Editor Modal */}
+        {/* Story Editor Modal - Enhanced with all features */}
         {capturedImage && (
-          <ImageEditor
+          <StoryEditor
             isOpen={showEditor}
-            imageData={capturedImage}
+            mediaData={capturedImage}
             onClose={() => {
               setShowEditor(false);
               setCapturedImage(null);
@@ -199,33 +263,57 @@ const CreatePost = () => {
           </div>
         </div>
 
-        {/* Tag Restaurant */}
+        {/* Tag Friends */}
         <Card>
           <CardContent className="p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <MapPin className="h-4 w-4 text-primary" />
-              Tag Restaurant
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <AtSign className="h-4 w-4 text-primary" />
+                Tag Friends
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowFriendTag(true)}>
+                <Search className="h-4 w-4 mr-1" />
+                Search
+              </Button>
+            </div>
+            {taggedFriends.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {taggedFriends.map((friend) => (
+                  <Badge key={friend.id} variant="secondary" className="cursor-pointer" onClick={() => toggleFriendTag(friend)}>
+                    <img src={friend.avatar} alt={friend.name} className="w-4 h-4 rounded-full mr-1" />
+                    {friend.name} <X className="h-3 w-3 ml-1" />
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tag Restaurant with Search */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <MapPin className="h-4 w-4 text-primary" />
+                Tag Restaurant
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowRestaurantSearch(true)}>
+                <Search className="h-4 w-4 mr-1" />
+                Search
+              </Button>
             </div>
             {selectedRestaurant ? (
               <div className="flex items-center justify-between bg-primary/10 rounded-lg p-3">
-                <span className="font-medium">{selectedRestaurant}</span>
+                <div>
+                  <span className="font-medium">{selectedRestaurant.name}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{selectedRestaurant.location}</span>
+                </div>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedRestaurant(null)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {suggestedRestaurants.map((restaurant) => (
-                  <Button
-                    key={restaurant.id}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedRestaurant(restaurant.name)}
-                  >
-                    {restaurant.name}
-                  </Button>
-                ))}
-              </div>
+              <p className="text-sm text-muted-foreground">Search and tag a restaurant</p>
             )}
           </CardContent>
         </Card>
@@ -276,6 +364,95 @@ const CreatePost = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Restaurant Search Dialog */}
+      <Dialog open={showRestaurantSearch} onOpenChange={setShowRestaurantSearch}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Search Restaurant</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, cuisine, or location..."
+                value={restaurantSearchQuery}
+                onChange={(e) => setRestaurantSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {filteredRestaurants.map((restaurant) => (
+                <button
+                  key={restaurant.id}
+                  onClick={() => {
+                    setSelectedRestaurant(restaurant);
+                    setShowRestaurantSearch(false);
+                    setRestaurantSearchQuery("");
+                    toast.success(`Tagged ${restaurant.name}`);
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left"
+                >
+                  <div>
+                    <p className="font-medium">{restaurant.name}</p>
+                    <p className="text-xs text-muted-foreground">{restaurant.cuisine} • {restaurant.location}</p>
+                  </div>
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+              {filteredRestaurants.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No restaurants found</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Friend Tag Dialog */}
+      <Dialog open={showFriendTag} onOpenChange={setShowFriendTag}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tag Friends</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search friends..."
+                value={friendSearchQuery}
+                onChange={(e) => setFriendSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {filteredFriends.map((friend) => {
+                const isTagged = taggedFriends.find(f => f.id === friend.id);
+                return (
+                  <button
+                    key={friend.id}
+                    onClick={() => toggleFriendTag(friend)}
+                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors text-left ${
+                      isTagged ? 'bg-primary/10' : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full" />
+                      <div>
+                        <p className="font-medium">{friend.name}</p>
+                        <p className="text-xs text-muted-foreground">{friend.username}</p>
+                      </div>
+                    </div>
+                    {isTagged && <Badge variant="secondary">Tagged</Badge>}
+                  </button>
+                );
+              })}
+            </div>
+            <Button className="w-full" onClick={() => setShowFriendTag(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </UserLayout>
   );
 };

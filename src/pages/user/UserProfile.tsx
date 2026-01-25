@@ -1,25 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Grid, Bookmark, Heart, MapPin, Calendar, Award, Edit2, Share2, MoreHorizontal, Flame, Crown, Trophy, Zap } from 'lucide-react';
+import { Grid, Bookmark, Heart, Calendar, Flame } from 'lucide-react';
 import { UserLayout } from '@/components/layouts/UserLayout';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import { StreakTracker, PointsBadgeCard, TierProgressBar } from '@/components/gamification';
-
-const userProfile = {
-  name: 'John Doe',
-  username: '@johndoe',
-  avatar: 'JD',
-  bio: 'Food enthusiast 🍕 | Always hunting for the best deals | NYC based',
-  posts: 47,
-  followers: 1234,
-  following: 567,
-  streak: 12,
-  points: 2450,
-  tier: 'Silver',
-  joinedDate: 'January 2024',
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 const userPosts = [
   { id: '1', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop', likes: 234 },
@@ -76,13 +61,27 @@ const userGamification = {
 };
 
 export default function UserProfile() {
-  const [activeTab, setActiveTab] = useState('posts');
+  const { user } = useAuth();
   const [showGamificationDetails, setShowGamificationDetails] = useState(false);
+
+  // Use authenticated user data or fallback
+  const userName = user?.name || 'User';
+  const userEmail = user?.email || '';
+  const userAvatar = user?.avatar || userName.split(' ').map(n => n[0]).join('').toUpperCase();
+  const userUsername = userEmail ? `@${userEmail.split('@')[0]}` : '@user';
+
+  const profileData = {
+    posts: 47,
+    followers: 1234,
+    following: 567,
+    tier: 'Silver',
+    joinedDate: 'January 2024',
+  };
 
   return (
     <UserLayout>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Profile Header */}
+        {/* Profile Header - Simplified without settings/share buttons */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -90,25 +89,21 @@ export default function UserProfile() {
         >
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center text-primary-foreground text-2xl font-bold">
-              {userProfile.avatar}
+              {typeof userAvatar === 'string' && userAvatar.startsWith('http') ? (
+                <img src={userAvatar} alt={userName} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                userAvatar
+              )}
             </div>
             <div>
-              <h1 className="text-xl font-bold font-display text-foreground">{userProfile.name}</h1>
-              <p className="text-muted-foreground">{userProfile.username}</p>
+              <h1 className="text-xl font-bold font-display text-foreground">{userName}</h1>
+              <p className="text-muted-foreground">{userUsername}</p>
               {/* Tier Badge */}
               <div className="flex items-center gap-1 mt-1">
                 <span className="text-lg">🥈</span>
-                <span className="text-sm font-medium text-secondary">{userProfile.tier} Member</span>
+                <span className="text-sm font-medium text-secondary">{profileData.tier} Member</span>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="rounded-xl">
-              <Share2 className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="rounded-xl">
-              <Settings className="w-4 h-4" />
-            </Button>
           </div>
         </motion.div>
 
@@ -119,7 +114,7 @@ export default function UserProfile() {
           transition={{ delay: 0.1 }}
           className="text-foreground mb-4"
         >
-          {userProfile.bio}
+          Food enthusiast 🍕 | Always hunting for the best deals | NYC based
         </motion.p>
 
         {/* Stats */}
@@ -130,33 +125,20 @@ export default function UserProfile() {
           className="flex items-center gap-6 mb-6"
         >
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground">{userProfile.posts}</p>
+            <p className="text-xl font-bold text-foreground">{profileData.posts}</p>
             <p className="text-sm text-muted-foreground">Posts</p>
           </div>
           <div className="text-center cursor-pointer hover:opacity-80">
-            <p className="text-xl font-bold text-foreground">{userProfile.followers.toLocaleString()}</p>
+            <p className="text-xl font-bold text-foreground">{profileData.followers.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground">Followers</p>
           </div>
           <div className="text-center cursor-pointer hover:opacity-80">
-            <p className="text-xl font-bold text-foreground">{userProfile.following}</p>
+            <p className="text-xl font-bold text-foreground">{profileData.following}</p>
             <p className="text-sm text-muted-foreground">Following</p>
           </div>
         </motion.div>
 
-        {/* Edit Profile Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <Button variant="outline" className="w-full rounded-xl">
-            <Edit2 className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
-        </motion.div>
-
-        {/* Streak Tracker - Collapsible on Mobile */}
+        {/* Streak Tracker with Icon */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -266,7 +248,7 @@ export default function UserProfile() {
         {/* Member Since */}
         <div className="mt-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
           <Calendar className="w-4 h-4" />
-          Member since {userProfile.joinedDate}
+          Member since {profileData.joinedDate}
         </div>
       </div>
     </UserLayout>

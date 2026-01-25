@@ -23,7 +23,8 @@ interface StreakLeaderboardProps {
   users: LeaderboardUser[];
   currentUserRank?: number;
   currentUserStreak?: number;
-  unlockedDeals?: { id: string; title: string; discount: string; minStreak: number }[];
+  unlockedDeals?: { id: string; title: string; discount: string; minStreak: number; restaurant?: string; code?: string }[];
+  onUseDeal?: (deal: { id: string; title: string; discount: string; minStreak: number; restaurant?: string; code?: string }) => void;
 }
 
 const getRankIcon = (rank: number) => {
@@ -52,7 +53,8 @@ export function StreakLeaderboard({
   users,
   currentUserRank,
   currentUserStreak = 0,
-  unlockedDeals = []
+  unlockedDeals = [],
+  onUseDeal
 }: StreakLeaderboardProps) {
   const [activeTab, setActiveTab] = useState('leaderboard');
 
@@ -218,9 +220,10 @@ export function StreakLeaderboard({
                       className={cn(
                         "p-4 rounded-xl border-2 transition-all",
                         isUnlocked 
-                          ? "border-primary bg-primary/5" 
+                          ? "border-primary bg-primary/5 cursor-pointer hover:bg-primary/10" 
                           : "border-border bg-muted/30 opacity-60"
                       )}
+                      onClick={() => isUnlocked && onUseDeal?.(deal)}
                     >
                       <div className="flex items-center justify-between">
                         <div>
@@ -232,7 +235,7 @@ export function StreakLeaderboard({
                           </div>
                           <p className="font-medium">{deal.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {isUnlocked ? "Unlocked!" : `Requires ${deal.minStreak} day streak`}
+                            {isUnlocked ? "Tap to use at restaurant" : `Requires ${deal.minStreak} day streak`}
                           </p>
                         </div>
                         <div className="text-right">
