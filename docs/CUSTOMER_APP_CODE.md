@@ -1,10 +1,55 @@
-# Customer App - Complete Code
+# Customer App - Complete Setup Guide
 
-## Setup Instructions
+This document contains all the code needed to set up the Customer App in a new Lovable project.
 
-1. Create a new Lovable project named "SnapDish Customer"
-2. Copy ALL files from this guide to the new project
-3. Delete any files that aren't listed below
+## Environment Setup
+
+After creating a new Lovable project, add these environment variables in the project settings:
+
+```
+VITE_SUPABASE_URL=https://hmedlhhcpoltalyxhaqr.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZWRsaGhjcG9sdGFseXhoYXFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MzczNDUsImV4cCI6MjA4MjMxMzM0NX0.avUfGCtrs9EdBrrBvfbh64O3UhKNhbMB8QvOOypaBio
+```
+
+## File Structure
+
+```
+src/
+├── App.tsx
+├── main.tsx
+├── index.css
+├── App.css
+├── lib/
+│   └── utils.ts
+├── types/
+│   └── auth.ts
+├── contexts/
+│   └── AuthContext.tsx
+├── integrations/
+│   └── supabase/
+│       ├── client.ts
+│       └── types.ts (copy from main project)
+├── components/
+│   ├── layouts/
+│   │   └── UserLayout.tsx
+│   ├── ui/ (copy all from main project)
+│   └── ... (customer-specific components)
+├── pages/
+│   ├── Landing.tsx
+│   ├── NotFound.tsx
+│   ├── RoleNotSupported.tsx
+│   └── auth/
+│   │   ├── Login.tsx
+│   │   ├── Signup.tsx
+│   │   ├── ForgotPassword.tsx
+│   │   ├── ResetPassword.tsx
+│   │   └── EmailVerification.tsx
+│   └── user/
+│       ├── HomeFeed.tsx
+│       ├── Search.tsx
+│       ├── DealWallet.tsx
+│       ├── ... (all user pages)
+```
 
 ---
 
@@ -20,19 +65,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-// Auth Pages
+// System & Auth Pages
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import RoleNotSupported from "./pages/RoleNotSupported";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
-import OTPVerification from "./pages/auth/OTPVerification";
 import EmailVerification from "./pages/auth/EmailVerification";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import PermissionsRequired from "./pages/auth/PermissionsRequired";
-import AccountSuspended from "./pages/auth/AccountSuspended";
-import Maintenance from "./pages/auth/Maintenance";
 
 // User Pages
 import HomeFeed from "./pages/user/HomeFeed";
@@ -80,20 +121,16 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
+            {/* System Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/verify-otp" element={<OTPVerification />} />
             <Route path="/verify-email" element={<EmailVerification />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/permissions-required" element={<PermissionsRequired />} />
-            <Route path="/account-suspended" element={<AccountSuspended />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/role-not-supported" element={<RoleNotSupported expectedRole="user" />} />
+            <Route path="/role-not-supported" element={<RoleNotSupported />} />
             
-            {/* Customer Routes */}
+            {/* User Routes */}
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/feed" element={<HomeFeed />} />
             <Route path="/search" element={<Search />} />
@@ -142,12 +179,63 @@ const App = () => (
 export default App;
 ```
 
----
-
-### src/pages/auth/Login.tsx (Customer Version - No Role Selector)
+### src/pages/RoleNotSupported.tsx
 
 ```tsx
-import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+
+export default function RoleNotSupported() {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  return (
+    <div className="min-h-screen gradient-warm flex items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md text-center"
+      >
+        <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Role Not Supported
+          </h1>
+          
+          <p className="text-muted-foreground mb-6">
+            This app is for customers only. Your account has a different role.
+            Please use the appropriate app for your account type.
+          </p>
+          
+          <div className="space-y-3">
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+              Logout
+            </Button>
+            <Link to="/login">
+              <Button variant="hero" className="w-full">
+                Try Different Account
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+```
+
+### src/pages/auth/Login.tsx
+
+```tsx
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
@@ -155,42 +243,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const EXPECTED_ROLE = 'user';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, user, isAuthenticated } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-
-  // Role validation after login
-  useEffect(() => {
-    const validateRole = async () => {
-      if (isAuthenticated && user) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (roleData?.role !== 'user') {
-          navigate('/role-not-supported');
-        } else {
-          navigate('/feed');
-        }
-      }
-    };
-    validateRole();
-  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await login(email, password);
+      const userRole = await login(email, password);
+      
+      // Validate role
+      if (userRole !== EXPECTED_ROLE) {
+        toast.error('This app is for customers only');
+        navigate('/role-not-supported');
+        return;
+      }
+      
       toast.success('Welcome back!');
+      navigate('/feed');
     } catch (error: any) {
       const message = error?.message || 'Invalid credentials';
       toast.error(message);
@@ -206,13 +284,12 @@ export default function Login() {
       >
         <Link to="/" className="block text-center mb-8">
           <h1 className="text-3xl font-bold text-gradient">SnapDish</h1>
-          <p className="text-sm text-muted-foreground mt-1">Customer App</p>
         </Link>
 
         <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground mt-2">Sign in to discover deals</p>
+            <p className="text-muted-foreground mt-2">Sign in to continue</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -281,54 +358,354 @@ export default function Login() {
 }
 ```
 
----
+### src/contexts/AuthContext.tsx
 
-## Files to Copy Directly
+```tsx
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { AuthUser, AuthState, UserRole } from '@/types/auth';
 
-Copy these files **exactly as-is** from the original project:
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<UserRole>;
+  logout: () => void;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+}
 
-### From src/components/
-- `layouts/UserLayout.tsx` ✓
-- All files in `ui/` ✓
-- All files in `social/` ✓
-- All files in `stories/` ✓
-- All files in `media/` ✓
-- All files in `gamification/` ✓
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-### From src/pages/user/
-- ALL 33 user page files ✓
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
 
-### From src/pages/auth/
-- `Signup.tsx` (remove restaurant signup link)
-- `ForgotPassword.tsx` ✓
-- `ResetPassword.tsx` ✓
-- `OTPVerification.tsx` ✓
-- `EmailVerification.tsx` ✓
-- `PermissionsRequired.tsx` ✓
-- `AccountSuspended.tsx` ✓
-- `Maintenance.tsx` ✓
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      }
+    );
 
-### Core Files
-- `src/contexts/AuthContext.tsx` ✓
-- `src/types/auth.ts` ✓
-- `src/types/stories.ts` ✓
-- `src/lib/utils.ts` ✓
-- `src/hooks/use-mobile.tsx` ✓
-- `src/hooks/use-toast.ts` ✓
-- `src/hooks/useStories.ts` ✓
-- `src/index.css` ✓
-- `tailwind.config.ts` ✓
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    });
 
----
+    return () => subscription.unsubscribe();
+  }, []);
 
-## Files to DELETE (Not needed in Customer App)
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const role = (roleData?.role as UserRole) || 'user';
+
+      const authUser: AuthUser = {
+        id: userId,
+        email: profile?.email || '',
+        name: profile?.name || '',
+        role,
+        avatar: profile?.profile_image_url || undefined,
+      };
+
+      setAuthState({
+        user: authUser,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<UserRole> => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+
+    // Fetch role to return for validation
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    return (roleData?.role as UserRole) || 'user';
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { name },
+      },
+    });
+    
+    if (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+  };
+
+  return (
+    <AuthContext.Provider value={{ ...authState, login, logout, signup }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
 ```
-src/pages/admin/*           # All admin pages
-src/pages/restaurant/*      # All restaurant pages
-src/pages/auth/RestaurantSignup.tsx
-src/pages/auth/AdminLogin.tsx
-src/pages/auth/RoleRouter.tsx
-src/components/layouts/AdminLayout.tsx
-src/components/layouts/RestaurantLayout.tsx
+
+---
+
+## Files to Copy from Main Project
+
+Copy these files/folders directly from the main project:
+
+### 1. UI Components (entire folder)
+```
+src/components/ui/*
+```
+
+### 2. User Layout
+```
+src/components/layouts/UserLayout.tsx
+```
+
+### 3. User Pages (entire folder)
+```
+src/pages/user/*
+```
+
+### 4. Social Components
+```
+src/components/social/*
+```
+
+### 5. Gamification Components
+```
+src/components/gamification/*
+```
+
+### 6. Media Components
+```
+src/components/media/*
+```
+
+### 7. Stories Components
+```
+src/components/stories/*
+```
+
+### 8. Shared Auth Pages
+```
+src/pages/auth/Signup.tsx
+src/pages/auth/ForgotPassword.tsx
+src/pages/auth/ResetPassword.tsx
+src/pages/auth/EmailVerification.tsx
+```
+
+### 9. Config Files
+```
+tailwind.config.ts
+src/index.css
+src/lib/utils.ts
+src/hooks/use-mobile.tsx
+src/hooks/use-toast.ts
+```
+
+### 10. Types
+```
+src/integrations/supabase/types.ts (entire file)
+src/types/stories.ts
+src/types/auth.ts
+```
+
+---
+
+## Landing Page (Customer Version)
+
+```tsx
+// src/pages/Landing.tsx
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Utensils, Tag, Trophy, ArrowRight, Sparkles, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const features = [
+  {
+    icon: Utensils,
+    title: 'Discover Dishes',
+    description: 'Find amazing food from local restaurants near you',
+  },
+  {
+    icon: Tag,
+    title: 'Exclusive Deals',
+    description: 'Save with special offers and limited-time promotions',
+  },
+  {
+    icon: Trophy,
+    title: 'Earn Rewards',
+    description: 'Collect points and unlock exclusive perks',
+  },
+];
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen gradient-warm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gradient">SnapDish</h1>
+            <div className="flex items-center gap-4">
+              <Link to="/login">
+                <Button variant="ghost">Login</Button>
+              </Link>
+              <Link to="/signup">
+                <Button variant="gradient">Get Started</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section className="pt-32 pb-20 px-6">
+        <div className="container mx-auto max-w-6xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>The #1 Food Discovery Platform</span>
+          </motion.div>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight mb-6"
+          >
+            Discover. Share.
+            <br />
+            <span className="text-gradient">Save on Food.</span>
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10"
+          >
+            Join millions of food lovers discovering the best dishes, exclusive deals, and earning rewards.
+          </motion.p>
+          
+          <Link to="/signup">
+            <Button variant="hero" size="xl">
+              Start Exploring
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="py-20 px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                className="bg-card rounded-2xl p-6 shadow-md border border-border"
+              >
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+```
+
+---
+
+## Installation Commands
+
+Run these in your new Lovable project terminal or let Lovable install them:
+
+```bash
+# These should auto-install, but if not:
+npm install @supabase/supabase-js framer-motion react-router-dom sonner
 ```

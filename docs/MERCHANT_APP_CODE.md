@@ -1,10 +1,52 @@
-# Merchant App - Complete Code
+# Merchant App - Complete Setup Guide
 
-## Setup Instructions
+This document contains all the code needed to set up the Merchant App in a new Lovable project.
 
-1. Create a new Lovable project named "SnapDish Merchant"
-2. Copy ALL files from this guide to the new project
-3. Delete any files that aren't listed below
+## Environment Setup
+
+After creating a new Lovable project, add these environment variables in the project settings:
+
+```
+VITE_SUPABASE_URL=https://hmedlhhcpoltalyxhaqr.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtZWRsaGhjcG9sdGFseXhoYXFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MzczNDUsImV4cCI6MjA4MjMxMzM0NX0.avUfGCtrs9EdBrrBvfbh64O3UhKNhbMB8QvOOypaBio
+```
+
+## File Structure
+
+```
+src/
+├── App.tsx
+├── main.tsx
+├── index.css
+├── App.css
+├── lib/
+│   └── utils.ts
+├── types/
+│   └── auth.ts
+├── contexts/
+│   └── AuthContext.tsx
+├── integrations/
+│   └── supabase/
+│       ├── client.ts
+│       └── types.ts (copy from main project)
+├── components/
+│   ├── layouts/
+│   │   └── RestaurantLayout.tsx
+│   ├── ui/ (copy all from main project)
+├── pages/
+│   ├── Landing.tsx
+│   ├── NotFound.tsx
+│   ├── RoleNotSupported.tsx
+│   ├── auth/
+│   │   ├── Login.tsx
+│   │   ├── Signup.tsx
+│   │   ├── ForgotPassword.tsx
+│   │   └── ResetPassword.tsx
+│   └── restaurant/
+│       ├── Dashboard.tsx
+│       ├── DealManagement.tsx
+│       ├── ... (all restaurant pages)
+```
 
 ---
 
@@ -20,19 +62,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 
-// Auth Pages
+// System & Auth Pages
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import RoleNotSupported from "./pages/RoleNotSupported";
 import Login from "./pages/auth/Login";
-import RestaurantSignup from "./pages/auth/RestaurantSignup";
-import OTPVerification from "./pages/auth/OTPVerification";
-import EmailVerification from "./pages/auth/EmailVerification";
+import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import PermissionsRequired from "./pages/auth/PermissionsRequired";
-import AccountSuspended from "./pages/auth/AccountSuspended";
-import Maintenance from "./pages/auth/Maintenance";
 
 // Restaurant Pages
 import Dashboard from "./pages/restaurant/Dashboard";
@@ -69,20 +106,15 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
+            {/* System Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<RestaurantSignup />} />
-            <Route path="/verify-otp" element={<OTPVerification />} />
-            <Route path="/verify-email" element={<EmailVerification />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/permissions-required" element={<PermissionsRequired />} />
-            <Route path="/account-suspended" element={<AccountSuspended />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/role-not-supported" element={<RoleNotSupported expectedRole="restaurant" />} />
+            <Route path="/role-not-supported" element={<RoleNotSupported />} />
             
-            {/* Restaurant Routes */}
+            {/* Restaurant Routes (no /restaurant prefix) */}
             <Route path="/staff-login" element={<StaffLogin />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/deals" element={<DealManagement />} />
@@ -119,12 +151,63 @@ const App = () => (
 export default App;
 ```
 
----
-
-### src/pages/auth/Login.tsx (Merchant Version - No Role Selector)
+### src/pages/RoleNotSupported.tsx
 
 ```tsx
-import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+
+export default function RoleNotSupported() {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  return (
+    <div className="min-h-screen gradient-warm flex items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md text-center"
+      >
+        <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Role Not Supported
+          </h1>
+          
+          <p className="text-muted-foreground mb-6">
+            This app is for restaurant merchants only. Your account has a different role.
+            Please use the appropriate app for your account type.
+          </p>
+          
+          <div className="space-y-3">
+            <Button onClick={handleLogout} variant="outline" className="w-full">
+              Logout
+            </Button>
+            <Link to="/login">
+              <Button variant="hero" className="w-full">
+                Try Different Account
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+```
+
+### src/pages/auth/Login.tsx
+
+```tsx
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Store } from 'lucide-react';
@@ -132,42 +215,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const EXPECTED_ROLE = 'restaurant';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, user, isAuthenticated } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-
-  // Role validation after login
-  useEffect(() => {
-    const validateRole = async () => {
-      if (isAuthenticated && user) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (roleData?.role !== 'restaurant') {
-          navigate('/role-not-supported');
-        } else {
-          navigate('/dashboard');
-        }
-      }
-    };
-    validateRole();
-  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await login(email, password);
+      const userRole = await login(email, password);
+      
+      // Validate role
+      if (userRole !== EXPECTED_ROLE) {
+        toast.error('This app is for restaurant merchants only');
+        navigate('/role-not-supported');
+        return;
+      }
+      
       toast.success('Welcome back!');
+      navigate('/dashboard');
     } catch (error: any) {
       const message = error?.message || 'Invalid credentials';
       toast.error(message);
@@ -182,16 +255,15 @@ export default function Login() {
         className="w-full max-w-md"
       >
         <Link to="/" className="block text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Store className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-gradient">SnapDish</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">Merchant Portal</p>
+          <h1 className="text-3xl font-bold text-gradient">SnapDish Business</h1>
         </Link>
 
         <div className="bg-card rounded-2xl shadow-lg p-8 border border-border">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mx-auto mb-4">
+              <Store className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">Merchant Login</h2>
             <p className="text-muted-foreground mt-2">Sign in to manage your restaurant</p>
           </div>
 
@@ -248,17 +320,11 @@ export default function Login() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              New restaurant?{' '}
+              Want to list your restaurant?{' '}
               <Link to="/signup" className="text-primary font-medium hover:underline">
-                Register here
+                Apply here
               </Link>
             </p>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-border text-center">
-            <Link to="/staff-login" className="text-sm text-primary font-medium hover:underline">
-              Staff member? Login here →
-            </Link>
           </div>
         </div>
       </motion.div>
@@ -267,55 +333,386 @@ export default function Login() {
 }
 ```
 
----
-
-### src/pages/Landing.tsx (Merchant Version)
+### src/contexts/AuthContext.tsx
 
 ```tsx
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { AuthUser, AuthState, UserRole } from '@/types/auth';
+
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<UserRole>;
+  logout: () => void;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const role = (roleData?.role as UserRole) || 'user';
+
+      const authUser: AuthUser = {
+        id: userId,
+        email: profile?.email || '',
+        name: profile?.name || '',
+        role,
+        avatar: profile?.profile_image_url || undefined,
+      };
+
+      setAuthState({
+        user: authUser,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<UserRole> => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    return (roleData?.role as UserRole) || 'user';
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { name },
+      },
+    });
+    
+    if (error) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
+  };
+
+  return (
+    <AuthContext.Provider value={{ ...authState, login, logout, signup }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+### src/components/layouts/RestaurantLayout.tsx
+
+```tsx
+import { ReactNode, useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Tag, 
+  Image, 
+  BarChart3, 
+  MessageSquare,
+  Star,
+  UtensilsCrossed,
+  Users,
+  Settings,
+  Menu,
+  X,
+  ChevronRight,
+  LogOut
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface RestaurantLayoutProps {
+  children: ReactNode;
+}
+
+const navItems = [
+  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/deals', icon: Tag, label: 'Deals' },
+  { path: '/content', icon: Image, label: 'UGC' },
+  { path: '/boost', icon: BarChart3, label: 'Boost & Ads' },
+  { path: '/messages', icon: MessageSquare, label: 'Messages' },
+  { path: '/reviews', icon: Star, label: 'Reviews' },
+  { path: '/menu', icon: UtensilsCrossed, label: 'Menu' },
+  { path: '/staff', icon: Users, label: 'Staff' },
+  { path: '/profile', icon: Settings, label: 'Settings' },
+];
+
+export function RestaurantLayout({ children }: RestaurantLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success('Logged out successfully');
+    navigate('/login');
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-6 h-6" />
+          </Button>
+          <h1 className="text-xl font-bold text-gradient">SnapDish Business</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-foreground/50 z-50"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-card border-r border-border transition-transform duration-300",
+          "lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-6 border-b border-border flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gradient">SnapDish</h1>
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+
+          <nav className="flex-1 py-6 px-4 overflow-y-auto">
+            <div className="space-y-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                  <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                </NavLink>
+              ))}
+            </div>
+          </nav>
+
+          <div className="p-4 border-t border-border space-y-3">
+            <div className="bg-muted rounded-lg p-4">
+              <p className="text-sm font-medium">Need help?</p>
+              <p className="text-xs text-muted-foreground mt-1">Contact our support team</p>
+              <NavLink to="/support">
+                <Button variant="default" size="sm" className="w-full mt-3">
+                  Get Support
+                </Button>
+              </NavLink>
+            </div>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-muted-foreground hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 pt-16 lg:pt-0">
+        <div className="p-6 lg:p-8">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+---
+
+## Files to Copy from Main Project
+
+### 1. UI Components (entire folder)
+```
+src/components/ui/*
+```
+
+### 2. Restaurant Pages (entire folder)
+Copy and update routes (remove /restaurant prefix):
+```
+src/pages/restaurant/*
+```
+
+### 3. Config Files
+```
+tailwind.config.ts
+src/index.css
+src/lib/utils.ts
+src/hooks/use-mobile.tsx
+src/hooks/use-toast.ts
+src/types/auth.ts
+```
+
+### 4. Types
+```
+src/integrations/supabase/types.ts (entire file)
+```
+
+---
+
+## Landing Page (Merchant Version)
+
+```tsx
+// src/pages/Landing.tsx
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, TrendingUp, Users, BarChart3, ArrowRight, Sparkles, Star } from 'lucide-react';
+import { Store, TrendingUp, Users, Tag, ArrowRight, ChartBar, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const features = [
   {
     icon: TrendingUp,
     title: 'Boost Sales',
-    description: 'Create irresistible deals that drive foot traffic',
+    description: 'Increase revenue with targeted promotions and deals',
   },
   {
     icon: Users,
-    title: 'Grow Customers',
-    description: 'Reach millions of hungry food lovers',
+    title: 'Reach Customers',
+    description: 'Connect with millions of food lovers in your area',
   },
   {
-    icon: BarChart3,
-    title: 'Track Analytics',
-    description: 'Real-time insights on deal performance',
+    icon: Tag,
+    title: 'Easy Deals',
+    description: 'Create and manage deals in minutes',
   },
   {
-    icon: Store,
-    title: 'Manage Easy',
-    description: 'Simple tools to run your business',
+    icon: ChartBar,
+    title: 'Analytics',
+    description: 'Track performance with detailed insights',
   },
 ];
 
 export default function Landing() {
   return (
     <div className="min-h-screen gradient-warm">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2"
-            >
-              <Store className="w-7 h-7 text-primary" />
+            <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-gradient">SnapDish</h1>
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">Business</span>
-            </motion.div>
+              <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">Business</span>
+            </div>
             <div className="flex items-center gap-4">
               <Link to="/login">
                 <Button variant="ghost">Login</Button>
@@ -328,88 +725,46 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Trusted by 10,000+ Restaurants</span>
-            </motion.div>
-            
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-foreground leading-tight mb-6"
-            >
-              Grow Your
-              <br />
-              <span className="text-gradient">Restaurant Business</span>
-            </motion.h2>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
-            >
-              Join the #1 food discovery platform. Create deals, boost visibility, and attract hungry customers to your restaurant.
-            </motion.p>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            >
-              <Link to="/signup">
-                <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                  Register Your Restaurant
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="outline" size="xl" className="w-full sm:w-auto">
-                  Already registered? Login
-                </Button>
-              </Link>
-            </motion.div>
-
-            {/* Social Proof */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="mt-12 flex items-center justify-center gap-8 text-muted-foreground"
-            >
-              <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">10K+</p>
-                <p className="text-sm">Restaurants</p>
-              </div>
-              <div className="h-8 w-px bg-border" />
-              <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">2M+</p>
-                <p className="text-sm">Customers</p>
-              </div>
-              <div className="h-8 w-px bg-border" />
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} className="w-4 h-4 fill-amber text-amber" />
-                ))}
-                <span className="text-sm font-medium ml-2">4.9</span>
-              </div>
-            </motion.div>
-          </div>
+        <div className="container mx-auto max-w-6xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
+          >
+            <Store className="w-4 h-4" />
+            <span>For Restaurant Partners</span>
+          </motion.div>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight mb-6"
+          >
+            Grow Your Restaurant
+            <br />
+            <span className="text-gradient">With SnapDish</span>
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10"
+          >
+            Join thousands of restaurants using SnapDish to attract new customers, increase sales, and build loyalty.
+          </motion.p>
+          
+          <Link to="/signup">
+            <Button variant="hero" size="xl">
+              Start Free Trial
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-20 px-6">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -419,37 +774,18 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
-                className="bg-card rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-border"
+                className="bg-card rounded-2xl p-6 shadow-md border border-border"
               >
                 <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-4">
                   <feature.icon className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">{feature.title}</h3>
+                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              © 2024 SnapDish Business. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Login
-              </Link>
-              <Link to="/signup" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Register
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
@@ -457,66 +793,18 @@ export default function Landing() {
 
 ---
 
-## Files to Copy Directly
+## Important: Update Route References in Restaurant Pages
 
-Copy these files **exactly as-is** from the original project:
+When copying restaurant pages, update internal navigation links to remove `/restaurant` prefix:
 
-### From src/components/
-- `layouts/RestaurantLayout.tsx` ✓
-- All files in `ui/` ✓
-
-### From src/pages/restaurant/
-- ALL 23 restaurant page files ✓
-
-### From src/pages/auth/
-- `RestaurantSignup.tsx` ✓
-- `ForgotPassword.tsx` ✓
-- `ResetPassword.tsx` ✓
-- `OTPVerification.tsx` ✓
-- `EmailVerification.tsx` ✓
-- `PermissionsRequired.tsx` ✓
-- `AccountSuspended.tsx` ✓
-- `Maintenance.tsx` ✓
-
-### Core Files
-- `src/contexts/AuthContext.tsx` ✓
-- `src/types/auth.ts` ✓
-- `src/lib/utils.ts` ✓
-- `src/hooks/use-mobile.tsx` ✓
-- `src/hooks/use-toast.ts` ✓
-- `src/index.css` ✓
-- `tailwind.config.ts` ✓
-
----
-
-## Files to DELETE (Not needed in Merchant App)
-
-```
-src/pages/admin/*           # All admin pages
-src/pages/user/*            # All user pages
-src/pages/auth/Signup.tsx   # Customer signup
-src/pages/auth/AdminLogin.tsx
-src/pages/auth/RoleRouter.tsx
-src/components/layouts/AdminLayout.tsx
-src/components/layouts/UserLayout.tsx
-src/components/social/*
-src/components/stories/*
-src/components/media/*
-src/components/gamification/*
-```
-
----
-
-## Route Updates for Restaurant Pages
-
-Update all restaurant page components to remove the `/restaurant` prefix from navigation:
-
-**Before** (in RestaurantLayout.tsx):
+**Before:**
 ```tsx
-{ path: '/restaurant/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+navigate('/restaurant/dashboard');
+<NavLink to="/restaurant/deals">
 ```
 
-**After**:
+**After:**
 ```tsx
-{ path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+navigate('/dashboard');
+<NavLink to="/deals">
 ```
