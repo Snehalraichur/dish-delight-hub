@@ -1,6 +1,6 @@
 # SnapDish - Product Requirements Document (PRD)
 
-**Version:** 1.0  
+**Version:** 2.0 (Comprehensive Edition)  
 **Last Updated:** January 2026  
 **Status:** Development
 
@@ -76,252 +76,872 @@ Empower food lovers to discover amazing dining experiences while helping restaur
 
 ---
 
-## 4. Feature Requirements
+## 4. Customer App - Complete Feature Breakdown (35 Pages)
 
-### 4.1 Customer App Features (35 pages)
+### 4.1 Home Feed (`/feed`)
 
-#### 4.1.1 Core Discovery
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Home Feed** | Personalized feed of food posts with deals | P0 |
-| **Search** | Search restaurants, dishes, hashtags with filters | P0 |
-| **Restaurant Profile** | View menu, deals, reviews, UGC | P0 |
-| **Stories** | 24-hour ephemeral content from users/restaurants | P1 |
+**Primary Features:**
+| Feature | Sub-Feature | Description | UI Element |
+|---------|-------------|-------------|------------|
+| **Stories Bar** | Your Story | Create new story with "+" icon | Dashed circle border |
+| | User Stories | Horizontal scroll of user avatars with gradient rings | Avatar circles |
+| | Restaurant Stories | Partner restaurant content | Avatar with verified badge |
+| | Story Tap Navigation | Navigate to story viewer on tap | Full-screen overlay |
+| **Pull-to-Refresh** | Touch gesture | Pull down to refresh feed content | Loading spinner |
+| | Toast notification | "Feed refreshed" confirmation | Sonner toast |
+| **Post Cards** | User header | Avatar, name, restaurant tag, location | Row with links |
+| | Media display | Image or video with aspect ratio | 1:1 container |
+| | Double-tap like | Heart animation on double-tap | Framer Motion heart |
+| | Rating badge | Star rating display | Top-right badge |
+| | **Deal Tag (AutoDealTag)** | Auto-attached deal overlay | Bottom-left card |
+| | | - Discount percentage | Bold text |
+| | | - Expiry countdown | Clock icon + text |
+| | | - Remaining count | "X left" indicator |
+| | | - Sold out state | Grayed badge |
+| **Action Bar** | Like button | Toggle like with count | Heart icon + number |
+| | Comment button | Link to comments with count | Message icon + number |
+| | Share button | Open share modal | Send icon + number |
+| | Bookmark button | Save/unsave post | Bookmark icon toggle |
+| **Likes Modal** | User list | Avatars, names, usernames | Scrollable list |
+| | Live update | Add current user immediately | Optimistic update |
+| **Share Modal** | Friends list | Searchable friend selector | Multi-select list |
+| | Copy link | Copy post URL | Button with confirmation |
+| | External share | Native share API | System sheet |
+| **Friends Claimed** | Avatar stack | Overlapping friend avatars | Up to 4 + "more" |
+| | Modal view | Full list of friends who claimed | Dialog |
+| **Grab Deal** | Add to wallet | Toast notification | Action button |
+| | Sold out handling | Error toast if no stock | Disabled state |
 
-#### 4.1.2 Deals & Wallet
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Deal Wallet** | View claimed, active, and expired deals | P0 |
-| **Deal Redemption** | QR code scanning for in-store redemption | P0 |
-| **Deal Sharing** | Share deals with friends for bonus points | P1 |
-| **Auto-attached Deals** | Deals auto-attach to qualifying posts | P1 |
+### 4.2 Stories System
 
-#### 4.1.3 Social Features
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Create Post** | Photo/video upload with captions, tags, location | P0 |
-| **Create Story** | Camera capture with filters, stickers, mentions | P1 |
-| **Comments** | Threaded comments on posts | P0 |
-| **Likes** | Like posts with visible like counts | P0 |
-| **Followers** | Follow users and restaurants | P1 |
-| **Direct Messages** | Chat with other users | P2 |
-| **Saved Posts** | Bookmark posts for later | P1 |
+#### 4.2.1 Story Viewer (`/stories/:userId`)
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Navigation** | Tap zones | Left/right to navigate stories |
+| | Progress bars | Segmented bar per story |
+| | Auto-advance | 5-second timer |
+| | Pause on hold | Touch and hold pauses |
+| **Story Content** | Full-screen media | Image or video fill |
+| | User info | Name, avatar, timestamp |
+| | Profile link | Navigate to user profile |
+| **Reactions** | Emoji selector | Quick emoji reactions |
+| | Reaction bubbles | Floating emoji animations |
+| **Viewers List** | View count | Number of views |
+| | Viewer avatars | Who watched (own stories only) |
 
-#### 4.1.4 Gamification & Loyalty
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Points System** | Earn points for actions (post, redeem, share) | P0 |
-| **Streaks** | Daily engagement streaks with multipliers | P1 |
-| **Tier System** | Bronze → Silver → Gold → Platinum tiers | P1 |
-| **Leaderboard** | Weekly/monthly streak rankings | P2 |
-| **Rewards Catalog** | Redeem points for rewards | P1 |
-| **Badges** | Achievement badges for milestones | P2 |
+#### 4.2.2 Create Story (`/create-story`)
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Capture Mode** | Camera button | Open camera capture |
+| | Photo/Video toggle | Switch between modes |
+| | Gallery upload | Select from device |
+| **Story Editor** | Crop tool | Content-only zoom (100-300%) |
+| | Filter presets | 12+ Instagram-style filters |
+| | | - Original, Vivid, Warm, Cool |
+| | | - Mono, Sepia, Vintage, Dramatic |
+| | | - Fade, Film, Noir, Chrome |
+| | Text overlay | Dynamic text with fonts |
+| | Emoji stickers | Drag-and-drop emojis |
+| | Music overlay | Custom audio upload |
+| | Drawing tool | Pencil and brush presets |
+| | | - Color picker |
+| | | - Brush size slider |
+| | Mention tagging | @username mentions |
+| **Save/Publish** | Database insert | Stories table with expiry |
+| | Real-time update | Query invalidation |
 
-#### 4.1.5 Events & Catering
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Events Discovery** | Browse food festivals, pop-ups, tastings | P1 |
-| **Event Tickets** | Purchase and manage event tickets | P2 |
-| **Catering Requests** | Request catering quotes from restaurants | P2 |
+#### 4.2.3 Story Highlights (Profile)
+| Feature | Description |
+|---------|-------------|
+| Highlight circles | Named collections on profile |
+| Cover image | Custom or first story |
+| Add to highlight | From story viewer |
+| Highlight editor | Rename, reorder, delete |
+| Story archives | Expired stories storage |
 
-#### 4.1.6 User Account
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Profile** | View/edit profile, posts, saved items | P0 |
-| **Settings** | Notifications, privacy, account management | P0 |
-| **Onboarding** | Guided setup for new users | P0 |
-| **Notifications** | Push and in-app notifications | P1 |
-| **Support** | Help center and ticket submission | P1 |
-| **Invite Friends** | Referral system with bonus points | P2 |
+### 4.3 Create Post (`/create-post`)
+
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Media Capture** | Take Photo | Camera capture modal |
+| | Gallery Select | File picker (image/*) |
+| | Re-edit | Open editor for selected image |
+| | Remove | Delete selected media |
+| **Story Editor Integration** | Crop | Aspect ratio adjustment |
+| | Filters | 12+ filter presets |
+| | Music | Audio overlay |
+| **Caption** | Text area | 500 character limit |
+| | Character count | Live counter |
+| | AI Suggest | AI-powered caption suggestions |
+| **Tag Friends** | Search modal | Filter by name/username |
+| | Multi-select | Toggle friend selection |
+| | Tag display | Badge chips with remove |
+| | Overlay indicator | "X tagged" on image |
+| **Tag Restaurant** | Search modal | Filter by name/cuisine/location |
+| | Restaurant selection | Single select |
+| | Location display | Name + address |
+| **Hashtags** | Input field | Add custom hashtags |
+| | Suggestions | Quick-add common hashtags |
+| | Hashtag chips | Removable badge list |
+| **Publish** | Validation | Require image |
+| | Success toast | Navigate to feed |
+
+### 4.4 Search & Discovery (`/search`)
+
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Search Input** | Text field | Query restaurants, dishes, deals |
+| | Filter toggle | Slide-out filter panel |
+| **Category Tabs** | All | Show all results |
+| | Deals | Filter to deal-attached items |
+| | Restaurants | Restaurant profiles only |
+| | Dishes | Individual menu items |
+| **Filter Panel** | Cuisine types | Multi-select (Italian, Japanese, etc.) |
+| | Price range | $, $$, $$$, $$$$ toggles |
+| | Clear all | Reset filters |
+| **Active Filters** | Filter chips | Removable tags above results |
+| **Results Grid** | Restaurant cards | Image, name, cuisine, rating |
+| | | - Distance indicator |
+| | | - Price level badge |
+| | | - Deal overlay if active |
+| | Dish cards | Image, name, restaurant, price |
+| | Deal countdown | Time remaining |
+
+### 4.5 Deal Wallet (`/wallet`)
+
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Streak Tracker** | Current streak | Day count with fire icon |
+| | Longest streak | Personal best |
+| | Streak points | Bonus earned |
+| | Risk indicator | Warning if at risk |
+| | Click action | Open leaderboard modal |
+| **Tier Progress Bar** | Current tier | Bronze/Silver/Gold/Platinum |
+| | Progress indicator | Points to next tier |
+| | Visits count | Restaurant visits |
+| | Redemptions count | Deals redeemed |
+| | Perks list | Locked/unlocked benefits |
+| **Points Summary Card** | Gradient design | Visual prominence |
+| | Total points | Large number |
+| | Redeem button | Open rewards modal |
+| **Tabs: Active/Redeemed** | Active deals | Claimed but unused |
+| | Redeemed deals | Used with savings |
+| **Active Deal Card** | Restaurant image | Thumbnail |
+| | Deal title | "25% Off Dinner" |
+| | Discount badge | Percentage overlay |
+| | Expiry countdown | Time remaining |
+| | **Deal Counter** | Friends who claimed |
+| | | - Avatar stack |
+| | | - Total count |
+| | Expand/collapse | Show QR section |
+| | **QR Code Section** | QR display | Generated code |
+| | | Code text | "GOLD25" |
+| | | Redemption button | Mark as used |
+| **QR Redemption Modal** | Full-screen QR | Scannable code |
+| | Deal details | Restaurant, discount, location |
+| | Expiry timer | Countdown |
+| | Confirm button | Complete redemption |
+| **Redeemed Section** | Deal history | Past redemptions |
+| | Savings total | "You saved $X" |
+| **Streak Leaderboard Modal** | User rankings | Top 10 + current user |
+| | Avatar, name, streak | Ranking display |
+| | Unlocked deals | Streak-based rewards |
+| | Use deal button | Activate reward |
+| **Redeem Points Modal** | Available rewards | Points cost grid |
+| | Category icons | Visual differentiation |
+| | Insufficient points | Disabled state |
+
+### 4.6 Gamification System
+
+#### 4.6.1 Streaks (`StreakTracker`)
+| Feature | Description |
+|---------|-------------|
+| Current streak | Consecutive days of activity |
+| Longest streak | Personal record |
+| Streak points | Bonus points for maintaining |
+| At-risk warning | If no activity today |
+| Multipliers | 7-day: 1.25x, 14-day: 1.5x, 30-day: 2x |
+
+#### 4.6.2 Tiers (`TierProgressBar`)
+| Tier | Points Required | Benefits |
+|------|-----------------|----------|
+| Bronze | 0 | Base rewards |
+| Silver | 500 | 10% off, priority support, early access |
+| Gold | 2,000 | 1.5x points, exclusive deals, free delivery |
+| Platinum | 5,000 | 2x points, VIP events, concierge service |
+
+#### 4.6.3 Points & Badges (`PointsBadgeCard`)
+| Feature | Description |
+|---------|-------------|
+| Total points | Accumulated balance |
+| Points to next tier | Progress indicator |
+| Badges earned | Achievement icons |
+| Badge descriptions | Unlock criteria |
+| Recent activity | Points history |
+
+#### 4.6.4 Reward Catalog (`RewardCatalog`)
+| Feature | Description |
+|---------|-------------|
+| Category filters | Discounts, Freebies, Experiences, Exclusive |
+| Reward cards | Name, cost, stock, restaurant |
+| Affordable indicator | Based on user points |
+| Limited badges | Scarcity markers |
+| Redemption flow | Confirm and deduct points |
+| Redeemed state | Greyed with checkmark |
+
+### 4.7 Events & Catering (`/events`)
+
+#### 4.7.1 Events Tab
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Location Filters** | State dropdown | Select state |
+| | City dropdown | Filter by city (depends on state) |
+| | "All" option | Clear filters |
+| **Category Filters** | All | No filter |
+| | Festival | Large food events |
+| | Tasting | Wine/food tastings |
+| | Class | Cooking classes |
+| | Pop-up | Temporary restaurants |
+| **Event Cards** | Event image | Cover photo |
+| | Category badge | Top-left label |
+| | Price badge | "From $X" |
+| | Title | Event name |
+| | Date | Calendar icon + date |
+| | Location | Map pin + venue |
+| | Attendees | User icon + count |
+| | Get Tickets | CTA button |
+
+#### 4.7.2 Catering Tab (4-Step Wizard)
+| Step | Features |
+|------|----------|
+| **1. Location** | State selector |
+| | City selector |
+| | Range slider (miles) |
+| **2. Restaurant** | Filtered restaurant list |
+| | Cuisine, rating, price per plate |
+| | Min order requirement |
+| | Select button |
+| **3. Menu** | Category grouping (Main, Starter, Side, Dessert) |
+| | Checkbox selection |
+| | Price per item |
+| | Running total |
+| **4. Details** | Event name input |
+| | Event date picker |
+| | Number of plates |
+| | Dietary requirements |
+| | Additional notes |
+| | Submit request |
+
+#### 4.7.3 My Tickets Tab
+| Feature | Description |
+|---------|-------------|
+| Ticket cards | Event name, date, quantity |
+| Ticket code | QR code identifier |
+| Empty state | "No tickets" illustration |
+
+### 4.8 Catering Request Form (`/catering-request`)
+
+| Field | Type | Options/Validation |
+|-------|------|-------------------|
+| Event Type | Select | Wedding, Corporate, Birthday, Private Dinner, Office Lunch, Festival, Other |
+| Date | Date picker | Required |
+| Time | Time picker | Optional |
+| Guest Count | Number input | Required, min 1 |
+| Location | Text input | Venue address |
+| Budget Range | Radio group | $500-1K, $1K-2.5K, $2.5K-5K, $5K+ |
+| Dietary Requirements | Checkbox group | Vegetarian, Vegan, Gluten-Free, Halal, Kosher, Nut-Free, Dairy-Free |
+| Additional Details | Textarea | Free-form notes |
+
+### 4.9 User Profile (`/profile`)
+
+| Section | Features |
+|---------|----------|
+| **Header** | Avatar (from auth) |
+| | Display name (from auth) |
+| | Username (@email prefix) |
+| | Tier badge (🥈 Silver Member) |
+| **Bio** | Editable description |
+| **Stats Row** | Posts count |
+| | Followers count (clickable) |
+| | Following count (clickable) |
+| **Streak Tracker** | Compact view |
+| **Tier Progress** | Compact view |
+| **Points & Badges** | Expandable/collapsible |
+| **Tabs** | Posts grid (3 columns) |
+| | Saved posts grid |
+| **Member Since** | Join date |
+
+### 4.10 Restaurant Profile (`/restaurant/:id`)
+
+| Section | Features |
+|---------|----------|
+| Cover image | Restaurant hero |
+| Profile info | Name, cuisine, rating |
+| Action buttons | Follow, Share, Directions |
+| Tabs | Menu, Deals, Photos, Reviews |
+| Active deals | Deal cards with claim |
+| UGC gallery | User photos tagged here |
+
+### 4.11 Additional Customer Pages
+
+| Page | Route | Key Features |
+|------|-------|--------------|
+| **Post Detail** | `/post/:id` | Full post view, comments, like, share |
+| **Comments** | `/post/:id/comments` | Threaded comments, add new |
+| **Deal Redemption** | `/deal/:id/redeem` | QR display, instructions |
+| **Redemption Success** | `/redemption-success` | Confirmation, points earned |
+| **Redemption Failed** | `/redemption-failed` | Error message, retry |
+| **Share Deal** | `/deal/:id/share` | Friends selection, share link |
+| **Event Detail** | `/events/:id` | Full event info, ticket options |
+| **Buy Ticket** | `/events/:id/tickets` | Quantity, payment |
+| **My Tickets** | `/my-tickets` | All purchased tickets |
+| **Catering Status** | `/catering-status` | Request tracking |
+| **Messages** | `/messages` | Thread list |
+| **Chat Thread** | `/messages/:threadId` | Individual conversation |
+| **Notifications** | `/notifications` | All notifications |
+| **Followers** | `/followers/:userId` | Follower/following lists |
+| **Saved Posts** | `/saved` | Bookmarked posts |
+| **Saved Restaurants** | `/saved-restaurants` | Favorited restaurants |
+| **Rewards & Points** | `/rewards` | Full rewards page |
+| **Loyalty Tier Details** | `/loyalty-tiers` | All tier benefits |
+| **Streaks & Gamification** | `/streaks` | Full gamification view |
+| **Invite Friends** | `/invite` | Referral code, share |
+| **Settings** | `/settings` | Account settings |
+| **Support** | `/support` | Help center, tickets |
+| **Onboarding** | `/onboarding` | New user setup |
 
 ---
 
-### 4.2 Merchant App Features (23 pages)
+## 5. Merchant App - Complete Feature Breakdown (23 Pages)
 
-#### 4.2.1 Dashboard & Analytics
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Dashboard** | Overview of key metrics, recent activity | P0 |
-| **Deal Analytics** | Performance metrics per deal (views, claims, redemptions) | P0 |
-| **Boost Performance** | ROI metrics for paid promotions | P1 |
+### 5.1 Dashboard (`/dashboard`)
 
-#### 4.2.2 Deal Management
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Create Deal** | Configure discount, limits, expiry, auto-attach | P0 |
-| **Deal List** | View, edit, pause, delete deals | P0 |
-| **Redemption History** | Log of all QR code scans with timestamps | P0 |
-| **Deal Creation Success** | Confirmation and sharing options | P0 |
+| Section | Features |
+|---------|----------|
+| **Stats Grid** | Total Views (with % change) |
+| | Active Deals count |
+| | New Customers (with % change) |
+| | Revenue (with % change) |
+| **Active Deals Card** | Top 3 deals with redemptions |
+| | Expiry countdown |
+| | View All link |
+| **Recent Reviews Card** | Latest 3 reviews |
+| | Customer name, rating, comment |
+| | View All link |
+| **Performance Chart** | Placeholder for analytics |
 
-#### 4.2.3 Content Management
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **UGC Management** | View user-generated posts mentioning restaurant | P1 |
-| **UGC Permission Approval** | Approve/deny UGC usage requests | P1 |
-| **Menu Management** | Upload and manage menu items | P1 |
-| **Reviews & Ratings** | View and respond to customer reviews | P1 |
+### 5.2 Deal Management (`/deals`)
 
-#### 4.2.4 Marketing & Promotion
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Boost Ads** | Create paid campaigns (CPM/CPC pricing) | P1 |
-| **Events Participation** | Join platform events and festivals | P2 |
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Stats Cards** | Active deals count | Current live deals |
+| | Total redemptions | All-time |
+| | Total views | All-time |
+| | Conversion rate | Redemptions/Views |
+| **Search & Filter** | Search input | Filter by name |
+| | Status dropdown | All, Active, Paused, Expired, Draft |
+| **Deals Table (Desktop)** | Deal name + description | |
+| | Status badge | Color-coded |
+| | Redemption progress | X/Y with bar |
+| | Views count | |
+| | Date range | Start - End |
+| | Actions dropdown | Edit, Pause/Activate, Analytics, Delete |
+| **Deals Cards (Mobile)** | Compact card layout | |
+| | Edit and Stats buttons | |
+| **Create/Edit Modal** | Deal name | Text input |
+| | Description | Textarea |
+| | Deal type | Percentage, Fixed, BOGO, Freebie |
+| | Value | Number input |
+| | Start/End dates | Date pickers |
+| | Max redemptions | Number input |
+| | Deal image | Upload dropzone |
+| | Auto-attach to posts | Toggle |
 
-#### 4.2.5 Operations
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Staff Login** | QR scanner access for staff | P0 |
-| **Staff Management** | Add/remove staff accounts | P1 |
-| **Catering Proposals** | Respond to catering requests | P2 |
+### 5.3 Deal Analytics (`/deal-analytics`)
 
-#### 4.2.6 Business & Billing
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Subscription Plans** | View/upgrade subscription tier | P0 |
-| **Billing & Invoices** | Payment history and invoice downloads | P0 |
-| **Payouts & Earnings** | Revenue tracking and payout requests | P1 |
-| **Contract & Commission** | View commission rates and terms | P1 |
-| **Profile Edit** | Update restaurant info, hours, photos | P0 |
-| **Messages** | Communication with platform/customers | P1 |
-| **Support** | Help center and ticket submission | P1 |
+| Metric | Visualization |
+|--------|---------------|
+| Impressions over time | Line chart |
+| Clicks over time | Line chart |
+| Redemptions over time | Bar chart |
+| Conversion funnel | Funnel chart |
+| Demographics | Pie charts |
+| Peak redemption times | Heatmap |
+
+### 5.4 Redemption History (`/redemptions`)
+
+| Column | Description |
+|--------|-------------|
+| Timestamp | When redeemed |
+| Customer | Name or ID |
+| Deal | Which deal |
+| Amount saved | Discount value |
+| Status | Completed, Voided |
+
+### 5.5 Boost & Ads (`/boost`)
+
+| Feature | Sub-Feature | Description |
+|---------|-------------|-------------|
+| **Stats Overview** | Total Spent | All campaigns |
+| | Impressions | Total reach |
+| | Conversions | Deal claims from ads |
+| | Conversion Rate | Percentage |
+| **Active Campaigns** | Campaign name | |
+| | Post thumbnail | |
+| | Budget progress | Spent/Total bar |
+| | Metrics grid | Impressions, Clicks, Conversions |
+| | Status badge | Active, Completed |
+| | End date | |
+| **Create Campaign Modal** | Post selection | Grid of eligible posts |
+| | Budget slider | $10-$500/day |
+| | Duration select | 3, 7, 14, 30 days |
+| | Target audience | Local, City, Regional, Foodies |
+| | Estimated results | Impressions, Clicks, Total Cost |
+
+### 5.6 Boost Performance (`/boost-performance`)
+
+| Metric | Details |
+|--------|---------|
+| ROI by campaign | Return on investment |
+| Cost per click | CPC metrics |
+| Cost per conversion | CPA metrics |
+| Audience insights | Demographics of converters |
+
+### 5.7 UGC Management (`/ugc`)
+
+| Feature | Description |
+|---------|-------------|
+| UGC feed | Posts mentioning restaurant |
+| Post details | User, media, caption, hashtags |
+| Engagement stats | Likes, comments, shares |
+| Approval status | Pending, Approved, Rejected |
+| Usage request | Ask permission to use |
+
+### 5.8 UGC Permission Approval (`/ugc-permissions`)
+
+| Column | Description |
+|--------|-------------|
+| User | Who posted |
+| Post preview | Thumbnail |
+| Request type | Marketing, Social, Website |
+| Status | Pending, Approved, Declined |
+| Actions | Approve, Decline buttons |
+
+### 5.9 Menu Management (`/menu`)
+
+| Feature | Description |
+|---------|-------------|
+| Menu categories | Appetizers, Mains, Desserts, Drinks |
+| Item cards | Image, name, price, description |
+| Add/Edit item | Modal form |
+| Reorder | Drag and drop |
+| Availability toggle | In stock/Out of stock |
+
+### 5.10 Reviews & Ratings (`/reviews`)
+
+| Feature | Description |
+|---------|-------------|
+| Overall rating | Average with count |
+| Rating distribution | 5-star breakdown |
+| Review list | Customer, rating, comment, date |
+| Reply function | Respond to reviews |
+| Flag inappropriate | Report to admin |
+
+### 5.11 Staff Management (`/staff`)
+
+| Feature | Description |
+|---------|-------------|
+| Staff list | Name, role, email, status |
+| Add staff | Email invite |
+| Roles | Owner, Manager, Staff |
+| Permissions | Deal creation, Redemption, Analytics |
+| Remove staff | Revoke access |
+
+### 5.12 Staff Login (`/staff-login`)
+
+| Feature | Description |
+|---------|-------------|
+| QR scanner | Camera access |
+| Manual code entry | Text input |
+| Redemption confirmation | Success/failure feedback |
+
+### 5.13 Additional Merchant Pages
+
+| Page | Route | Key Features |
+|------|-------|--------------|
+| **Subscription Plans** | `/subscription` | Plan tiers, upgrade, features |
+| **Billing & Invoices** | `/billing` | Payment history, invoices |
+| **Payouts & Earnings** | `/payouts` | Revenue, pending, completed |
+| **Contract & Commission** | `/contract` | Commission rates, terms |
+| **Profile Edit** | `/profile/edit` | Restaurant info, hours, photos |
+| **Messages** | `/messages` | Customer conversations |
+| **Support** | `/support` | Help center, tickets |
+| **Catering** | `/catering` | Catering requests list |
+| **Catering Proposal** | `/catering/:id` | Respond to request |
+| **Events Participation** | `/events` | Join platform events |
+| **Deal Creation Success** | `/deals/success` | Confirmation page |
 
 ---
 
-### 4.3 Admin App Features (32 pages)
+## 6. Admin App - Complete Feature Breakdown (32 Pages)
 
-#### 4.3.1 Platform Overview
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Dashboard** | Platform-wide KPIs, alerts, trends | P0 |
-| **Revenue Reports** | Financial analytics and breakdowns | P0 |
-| **Audit Logs** | Complete action history for compliance | P1 |
+### 6.1 Dashboard (`/dashboard`)
 
-#### 4.3.2 User Management
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **User Management** | Search, filter, view all users | P0 |
-| **User Detail View** | Individual user profile, history, actions | P0 |
-| **User Incentive Engine** | Configure point rules, multipliers | P1 |
+| Section | Features |
+|---------|----------|
+| **Stats Grid** | Total Users (with % change) |
+| | Total Restaurants (with % change) |
+| | Fraud Cases (with % change, trend) |
+| | Revenue (with % change) |
+| **Recent Activity** | Activity type indicators |
+| | Action description |
+| | Target details |
+| | Timestamp |
+| **Top Restaurants** | Ranking (1-4) |
+| | Restaurant name |
+| | Deal count |
+| | Revenue generated |
+| **Platform Health** | Uptime percentage |
+| | Average response time |
+| | Active sessions |
+| | Critical errors |
 
-#### 4.3.3 Restaurant Management
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Restaurant Management** | List all restaurants with status filters | P0 |
-| **Restaurant Detail View** | Full restaurant profile, metrics, deals | P0 |
-| **Restaurant Onboarding** | Approval workflow for new restaurants | P0 |
-| **Subscription Management** | Manage restaurant subscription plans | P1 |
+### 6.2 User Management (`/users`)
 
-#### 4.3.4 Content Moderation
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Content Moderation** | Review flagged posts, approve/reject | P0 |
-| **AI Moderation Settings** | Configure auto-moderation rules | P1 |
+| Feature | Description |
+|---------|-------------|
+| Search | By name, email, username |
+| Filters | Status, Tier, Join date |
+| User table | Name, email, tier, status, joined |
+| Actions | View, Suspend, Delete |
+| Bulk actions | Multi-select operations |
 
-#### 4.3.5 Fraud & Security
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Fraud Detection** | AI-powered fraud alerts dashboard | P0 |
-| **Fraud Case Detail** | Investigation view with evidence | P0 |
-| **Fraud Prevention** | Configure detection rules and thresholds | P1 |
+### 6.3 User Detail View (`/users/:id`)
 
-#### 4.3.6 Financial Operations
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Commission Rules Engine** | Configure commission tiers and rules | P0 |
-| **Manual Payout Approval** | Approve high-value payouts | P0 |
-| **Refund Management** | Process and track refunds | P1 |
+| Section | Details |
+|---------|---------|
+| Profile info | Avatar, name, email, phone |
+| Account status | Active, Suspended, Banned |
+| Tier & Points | Current tier, total points |
+| Activity stats | Posts, redemptions, referrals |
+| Transaction history | Points earned/spent |
+| Flagged activity | Any policy violations |
+| Admin actions | Suspend, Ban, Reset password |
 
-#### 4.3.7 Marketing & Campaigns
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Campaign Management** | Create platform-wide promotions | P1 |
-| **Ads Boost Engine** | Manage restaurant ad campaigns | P1 |
-| **Brand Partnerships** | Manage sponsor deals and integrations | P2 |
-| **Notification Engine** | Send push/email campaigns | P1 |
+### 6.4 Restaurant Management (`/restaurants`)
 
-#### 4.3.8 Events & Expansion
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Event Management** | Create and manage food events | P1 |
-| **Events & Catering Oversight** | Monitor catering requests | P2 |
-| **Ticket Sales Dashboard** | Event ticket revenue tracking | P2 |
-| **City Launch Manager** | Tools for launching in new cities | P2 |
+| Feature | Description |
+|---------|-------------|
+| Search | By name, cuisine, location |
+| Filters | Status, Subscription, Join date |
+| Restaurant table | Name, owner, status, subscription |
+| Actions | View, Approve, Suspend |
 
-#### 4.3.9 Platform Settings
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Platform Settings** | Global configuration options | P0 |
-| **Feature Flags** | Toggle features per environment | P1 |
-| **Legal & Compliance** | Terms, privacy policy management | P1 |
-| **Support Console** | View and respond to support tickets | P0 |
+### 6.5 Restaurant Detail View (`/restaurants/:id`)
+
+| Section | Details |
+|---------|---------|
+| Profile info | Name, address, cuisine, hours |
+| Owner info | Contact details |
+| Subscription | Plan, billing status |
+| Performance | Deals, redemptions, revenue |
+| UGC | Posts mentioning restaurant |
+| Reviews | Rating distribution |
+| Admin actions | Approve, Suspend, Terminate |
+
+### 6.6 Restaurant Onboarding (`/onboarding`)
+
+| Stage | Features |
+|-------|----------|
+| Application queue | Pending applications |
+| Document review | Business license, ID |
+| Verification checklist | Required documents |
+| Approval/Rejection | With notes |
+
+### 6.7 Content Moderation (`/moderation`)
+
+| Feature | Description |
+|---------|-------------|
+| Moderation queue | Flagged posts |
+| Post preview | Media, caption |
+| Flag reason | Why reported |
+| Flagged by | User or AI |
+| Actions | Approve, Remove, Warn user |
+
+### 6.8 AI Moderation Settings (`/moderation/settings`)
+
+| Setting | Options |
+|---------|---------|
+| Auto-moderation | Enable/Disable |
+| Sensitivity levels | Low, Medium, High |
+| Category filters | Nudity, Violence, Spam, etc. |
+| Auto-actions | Flag, Remove, Notify |
+
+### 6.9 Fraud Detection (`/fraud`)
+
+| Feature | Description |
+|---------|-------------|
+| **Stats** | Active cases |
+| | Under review |
+| | Prevented loss |
+| | Trend vs last month |
+| **Case table** | Case ID |
+| | Fraud type |
+| | User involved |
+| | Severity (Critical, High, Medium) |
+| | Status (Pending, Investigating, Confirmed, Resolved) |
+| | Amount at risk |
+| | Date |
+| | View action |
+
+### 6.10 Fraud Case Detail (`/fraud/:id`)
+
+| Section | Details |
+|---------|---------|
+| Case summary | Type, severity, status |
+| User profile | Account info, history |
+| Evidence | Transaction logs, patterns |
+| Related cases | Similar fraud attempts |
+| Actions | Confirm, Dismiss, Escalate |
+| Resolution | Outcome, amount recovered |
+
+### 6.11 Fraud Prevention (`/fraud/prevention`)
+
+| Setting | Description |
+|---------|-------------|
+| Detection rules | Configure thresholds |
+| Velocity limits | Max redemptions per hour |
+| Location checks | Geofencing rules |
+| Device fingerprinting | Multi-account detection |
+| Alert thresholds | When to notify |
+
+### 6.12 Financial Operations
+
+#### Commission Rules Engine (`/commission`)
+| Feature | Description |
+|---------|-------------|
+| Commission tiers | Based on volume |
+| Rate configuration | Percentage per tier |
+| Category rates | Different by cuisine |
+| Special agreements | Custom rates |
+
+#### Manual Payout Approval (`/payouts`)
+| Feature | Description |
+|---------|-------------|
+| Pending payouts | Awaiting approval |
+| Payout details | Amount, restaurant, bank |
+| Approval workflow | Review, Approve, Reject |
+| Audit trail | Who approved when |
+
+#### Refund Management (`/refunds`)
+| Feature | Description |
+|---------|-------------|
+| Refund requests | From users/restaurants |
+| Request details | Reason, amount |
+| Approval process | Verify, Process |
+| Reporting | Refund trends |
+
+#### Revenue Reports (`/revenue`)
+| Report | Metrics |
+|--------|---------|
+| GMV | Gross merchandise value |
+| Take rate | Platform revenue % |
+| MRR | Monthly recurring (subscriptions) |
+| By category | Revenue by cuisine |
+| By city | Geographic breakdown |
+
+### 6.13 Campaign & Marketing
+
+#### Campaign Management (`/campaigns`)
+| Feature | Description |
+|---------|-------------|
+| Active campaigns | Current promotions |
+| Create campaign | Name, dates, rules |
+| Target selection | Users, Restaurants, All |
+| Performance | Engagement metrics |
+
+#### Ads Boost Engine (`/ads`)
+| Feature | Description |
+|---------|-------------|
+| Active boosts | Restaurant ad campaigns |
+| Budget monitoring | Spend vs budget |
+| Performance | CPM, CPC, conversions |
+| Approval queue | New ad requests |
+
+#### Brand Partnerships (`/partnerships`)
+| Feature | Description |
+|---------|-------------|
+| Partner list | Active sponsors |
+| Partnership details | Terms, budget |
+| Integration | How displayed |
+| Performance | ROI metrics |
+
+#### Notification Engine (`/notifications`)
+| Feature | Description |
+|---------|-------------|
+| Campaign list | Scheduled notifications |
+| Create notification | Title, body, audience |
+| Scheduling | Immediate or scheduled |
+| Analytics | Open rates, CTR |
+
+### 6.14 User Incentive Engine (`/incentives`)
+
+| Feature | Description |
+|---------|-------------|
+| Reward rules | Actions and points |
+| Active rules | Currently enabled |
+| Rule editor | Create/modify rules |
+| Multipliers | Time-based bonuses |
+| Daily limits | Max points per action |
+
+### 6.15 Events & Catering
+
+#### Event Management (`/events`)
+| Feature | Description |
+|---------|-------------|
+| Event list | All platform events |
+| Create event | Details, venue, pricing |
+| Ticket management | Sales, capacity |
+| Participating restaurants | Who's involved |
+
+#### Events & Catering Oversight (`/catering-oversight`)
+| Feature | Description |
+|---------|-------------|
+| Request monitoring | All catering requests |
+| Dispute resolution | Issues between parties |
+
+#### Ticket Sales Dashboard (`/ticket-sales`)
+| Metric | Details |
+|--------|---------|
+| Total sales | Revenue from tickets |
+| By event | Breakdown per event |
+| Trends | Sales over time |
+
+### 6.16 Platform Configuration
+
+#### Platform Settings (`/settings`)
+| Setting | Description |
+|---------|-------------|
+| General | App name, logo |
+| Limits | Max deals, post frequency |
+| Defaults | New user settings |
+
+#### Feature Flags (`/feature-flags`)
+| Feature | Description |
+|---------|-------------|
+| Flag list | All toggleable features |
+| Environment | Dev, Staging, Production |
+| Rollout | Percentage-based |
+
+#### Legal & Compliance (`/legal`)
+| Document | Management |
+|----------|------------|
+| Terms of Service | Version, edit |
+| Privacy Policy | Version, edit |
+| Cookie Policy | Consent settings |
+
+### 6.17 Support Console (`/support`)
+
+| Feature | Description |
+|---------|-------------|
+| Ticket queue | Open tickets |
+| Filters | Priority, Category, Status |
+| Ticket detail | Conversation thread |
+| Assignment | Assign to agent |
+| Resolution | Close with notes |
+
+### 6.18 Additional Admin Pages
+
+| Page | Route | Key Features |
+|------|-------|--------------|
+| **Subscription Management** | `/subscriptions` | All restaurant plans |
+| **City Launch Manager** | `/cities` | New market expansion |
+| **Audit Logs** | `/audit` | Complete action history |
 
 ---
 
-## 5. Database Schema
+## 7. Database Schema
 
-### 5.1 Core Tables
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    profiles     │     │   restaurants   │     │   user_roles    │
-├─────────────────┤     ├─────────────────┤     ├─────────────────┤
-│ id (PK)         │     │ id (PK)         │     │ id (PK)         │
-│ name            │     │ name            │     │ user_id (FK)    │
-│ email           │     │ owner_id        │     │ role (enum)     │
-│ phone           │     │ address         │     └─────────────────┘
-│ points          │     │ cuisine_type    │
-│ streak_count    │     │ status          │
-│ tier_id (FK)    │     │ subscription_id │
-│ profile_image   │     │ profile_image   │
-└─────────────────┘     └─────────────────┘
-
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│     posts       │     │     deals       │     │ deal_redemptions│
-├─────────────────┤     ├─────────────────┤     ├─────────────────┤
-│ id (PK)         │     │ id (PK)         │     │ id (PK)         │
-│ user_id (FK)    │     │ restaurant_id   │     │ deal_id (FK)    │
-│ restaurant_id   │     │ title           │     │ user_id (FK)    │
-│ caption         │     │ description     │     │ post_id (FK)    │
-│ media_url       │     │ discount_pct    │     │ qr_code_data    │
-│ hashtags        │     │ expiry_datetime │     │ claimed_at      │
-│ deal_id (FK)    │     │ max_redemptions │     │ redeemed_at     │
-│ created_at      │     │ auto_attach     │     │ status          │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
-
-### 5.2 Role Enumeration
-
-```sql
-CREATE TYPE app_role AS ENUM ('user', 'restaurant', 'admin');
-```
-
-### 5.3 Key Tables Reference
+### 7.1 Core Tables
 
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
-| `profiles` | User profile data | points, streak_count, tier_id |
-| `restaurants` | Restaurant listings | status, subscription_plan_id |
-| `posts` | User-generated content | media_url, deal_id, hashtags |
-| `deals` | Restaurant promotions | discount_percent, expiry, max_redemptions |
-| `deal_redemptions` | Claimed/redeemed deals | qr_code_data, status |
-| `stories` | Ephemeral content | expires_at, media_url |
-| `story_highlights` | Saved story collections | cover_image_url |
-| `events` | Food events | start/end_datetime, location |
-| `ticket_sales` | Event ticket purchases | quantity, total_amount |
-| `loyalty_tiers` | Tier definitions | points_required, benefits |
-| `reward_rules` | Points configuration | action_type, points_awarded |
-| `user_badges` | Earned achievements | badge_name, date_awarded |
-| `ad_boosts` | Paid promotions | budget, pricing_model, metrics |
-| `campaigns` | Platform promotions | rules, target filters |
-| `support_tickets` | Help requests | status, priority, assigned_to |
-| `flagged_content` | Moderation queue | reason, reviewed_by |
-| `admin_actions` | Audit trail | action_type, details |
+| `profiles` | User profile data | id, name, email, points, streak_count, tier_id |
+| `user_roles` | Role assignments | user_id, role (enum: user, restaurant, admin) |
+| `restaurants` | Restaurant listings | owner_id, name, status, subscription_plan_id |
+| `posts` | User-generated content | user_id, restaurant_id, media_url, caption, deal_id |
+| `deals` | Restaurant promotions | restaurant_id, title, discount_percent, expiry, max_redemptions |
+| `deal_redemptions` | Claimed/redeemed deals | deal_id, user_id, qr_code_data, status |
+
+### 7.2 Social Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `likes` | Post likes | post_id, user_id |
+| `comments` | Post comments | post_id, user_id, content |
+| `stories` | Ephemeral content | user_id, media_url, expires_at |
+| `story_reactions` | Story emoji reactions | story_id, user_id, emoji |
+| `story_mentions` | @mentions in stories | story_id, mentioned_user_id, position |
+| `story_highlights` | Saved story collections | user_id, name, cover_image_url |
+| `highlight_stories` | Stories in highlights | highlight_id, story_id |
+| `story_archives` | Expired stories storage | user_id, original_story_id, media_url |
+
+### 7.3 Messaging Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `threads` | Conversation threads | participant_ids (JSONB) |
+| `messages` | Individual messages | thread_id, sender_id, content, read_at |
+
+### 7.4 Gamification Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `loyalty_tiers` | Tier definitions | name, points_required, benefits (JSONB) |
+| `user_badges` | Earned achievements | user_id, badge_name, date_awarded |
+| `reward_rules` | Points configuration | action_type, points_awarded, conditions |
+
+### 7.5 Events & Catering Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `events` | Food events | name, start_datetime, location, organizer_id |
+| `ticket_sales` | Event tickets | event_id, user_id, quantity, total_amount |
+| `catering_requests` | Catering inquiries | user_id, restaurant_id, details (JSONB) |
+
+### 7.6 Marketing Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `ad_boosts` | Paid promotions | restaurant_id, post_id, budget, metrics |
+| `campaigns` | Platform promotions | name, rules, target_filters |
+| `brand_partnerships` | Sponsor deals | brand_name, budget, terms |
+
+### 7.7 Operations Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|------------|
+| `restaurant_subscription_plans` | Plan definitions | name, price_per_month, features |
+| `support_tickets` | Help requests | user_id, subject, status, priority |
+| `flagged_content` | Moderation queue | post_id, flagged_by, reason, status |
+| `admin_actions` | Audit trail | admin_id, action_type, target_id, details |
 
 ---
 
-## 6. User Flows
+## 8. Edge Functions
 
-### 6.1 Deal Redemption Flow (Customer)
+| Function | Purpose | Triggers |
+|----------|---------|----------|
+| `qr-validation` | Validate QR codes, detect fraud, process redemption | Staff scan |
+| `points-engine` | Calculate and award points based on rules | User actions |
+| `analytics-aggregation` | Aggregate metrics for dashboards | Scheduled |
+| `complex-queries` | Optimized multi-table queries | API calls |
+
+---
+
+## 9. User Flows
+
+### 9.1 Deal Redemption Flow
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -336,236 +956,153 @@ CREATE TYPE app_role AS ENUM ('user', 'restaurant', 'admin');
 └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
-### 6.2 Deal Creation Flow (Merchant)
+### 9.2 Story Creation Flow
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  Dashboard   │───▶│ Create Deal  │───▶│ Set Details  │───▶│ Configure    │
-│              │    │   Button     │    │ (%, expiry)  │    │ Auto-attach  │
+│ Tap "Your    │───▶│   Camera     │───▶│   Apply      │───▶│   Add Text   │
+│   Story"     │    │   Capture    │    │   Filters    │    │  & Stickers  │
 └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
                                                                     │
                                                                     ▼
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Deal Active  │◀───│   Success    │◀───│   Preview    │
-│ (Analytics)  │    │   Screen     │    │  & Publish   │
+│ Story Live   │◀───│   Publish    │◀───│  Add Music   │
+│  (24 hours)  │    │              │    │              │
 └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
-### 6.3 Content Moderation Flow (Admin)
+### 9.3 Boost Campaign Flow (Merchant)
 
 ```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Select Post  │───▶│  Set Budget  │───▶│  Choose      │───▶│  Review      │
+│  to Boost    │    │  ($/day)     │    │  Duration    │    │  Estimates   │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+                                                                    │
+                                                                    ▼
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ AI Flags     │───▶│ Review Queue │───▶│ View Details │
-│ Content      │    │  Dashboard   │    │ + Context    │
+│ Track ROI    │◀───│  Campaign    │◀───│   Launch     │
+│              │    │   Active     │    │              │
 └──────────────┘    └──────────────┘    └──────────────┘
-        │                                       │
-        │                              ┌────────┴────────┐
-        ▼                              ▼                 ▼
-┌──────────────┐              ┌──────────────┐  ┌──────────────┐
-│ Auto-Remove  │              │   Approve    │  │   Remove +   │
-│ (High Score) │              │              │  │ Warn/Ban User│
-└──────────────┘              └──────────────┘  └──────────────┘
 ```
 
 ---
 
-## 7. Points & Gamification System
+## 10. Revenue Model
 
-### 7.1 Point Actions
+### 10.1 Revenue Streams
 
-| Action | Points | Daily Limit | Conditions |
-|--------|--------|-------------|------------|
-| Create post | 10 | 5 posts | Must include photo |
-| Redeem deal | 25 | Unlimited | First redemption at venue: 50 |
-| Share deal | 5 | 3 shares | Per unique friend click |
-| Daily login | 2 | 1 | Increases with streak |
-| Write review | 15 | 3 reviews | Min 50 characters |
-| Refer friend | 100 | Unlimited | When friend signs up |
+| Stream | Rate | Description |
+|--------|------|-------------|
+| **Deal Redemption Commission** | 30-50% | Per successful redemption |
+| **Restaurant Subscriptions** | $100-300/mo | Tiered plans (Basic, Pro, Premium) |
+| **UGC Boost Ads** | CPM/CPC | Promoted posts |
+| **Catering Commission** | 10-15% | On catering bookings |
+| **Event Ticket Sales** | 5-10% | Per ticket sold |
 
-### 7.2 Tier Structure
+### 10.2 Subscription Tiers
 
-| Tier | Points Required | Benefits |
-|------|-----------------|----------|
-| **Bronze** | 0 | Base rewards |
-| **Silver** | 500 | 1.2x point multiplier, early deal access |
-| **Gold** | 2,000 | 1.5x multiplier, exclusive deals, priority support |
-| **Platinum** | 5,000 | 2x multiplier, VIP events, free delivery credits |
-
-### 7.3 Streak Multipliers
-
-| Consecutive Days | Multiplier |
-|------------------|------------|
-| 1-6 days | 1x |
-| 7-13 days | 1.25x |
-| 14-29 days | 1.5x |
-| 30+ days | 2x |
+| Plan | Price | Features |
+|------|-------|----------|
+| **Basic** | $100/mo | 3 active deals, basic analytics |
+| **Pro** | $200/mo | 10 deals, advanced analytics, UGC tools |
+| **Premium** | $300/mo | Unlimited deals, priority support, API access |
 
 ---
 
-## 8. Technical Requirements
+## 11. Technical Stack
 
-### 8.1 Frontend Stack
-
-- **Framework:** React 18 with TypeScript
+### 11.1 Frontend
+- **Framework:** React 18 + TypeScript
 - **Build Tool:** Vite
-- **Styling:** Tailwind CSS with custom design tokens
-- **UI Components:** shadcn/ui (Radix primitives)
-- **State Management:** TanStack Query (React Query)
+- **Styling:** Tailwind CSS + shadcn/ui
+- **State:** TanStack Query
 - **Routing:** React Router v6
 - **Animations:** Framer Motion
-- **Forms:** React Hook Form + Zod validation
+- **Forms:** React Hook Form + Zod
 
-### 8.2 Backend Stack
-
+### 11.2 Backend
 - **Platform:** Lovable Cloud (Supabase)
 - **Database:** PostgreSQL
-- **Authentication:** Supabase Auth
+- **Auth:** Supabase Auth
 - **Storage:** Supabase Storage
-- **Serverless Functions:** Deno Edge Functions
+- **Functions:** Deno Edge Functions
 - **Real-time:** Supabase Realtime
 
-### 8.3 Edge Functions
-
-| Function | Purpose |
-|----------|---------|
-| `qr-validation` | Validate and process QR code redemptions |
-| `points-engine` | Calculate and award points for actions |
-| `analytics-aggregation` | Aggregate metrics for dashboards |
-| `complex-queries` | Handle complex multi-table queries |
-
-### 8.4 Security Requirements
-
+### 11.3 Security
 - Row-Level Security (RLS) on all tables
-- Role-based access control via `user_roles` table
-- JWT token validation for all API calls
-- HTTPS-only communication
-- Input validation on all forms
-- Rate limiting on sensitive endpoints
+- Role-based access via `has_role()` function
+- JWT validation
+- Input sanitization
+- Rate limiting
 
 ---
 
-## 9. Non-Functional Requirements
+## 12. Success Metrics
 
-### 9.1 Performance
-
-| Metric | Target |
-|--------|--------|
-| Page Load Time | < 2 seconds |
-| Time to Interactive | < 3 seconds |
-| API Response Time | < 200ms (p95) |
-| Image Load Time | < 1 second (optimized) |
-
-### 9.2 Scalability
-
-- Support 100,000+ concurrent users
-- Handle 1M+ posts per month
-- Process 500+ QR scans per minute
-- Store 10TB+ of media files
-
-### 9.3 Availability
-
-- 99.9% uptime SLA
-- Automatic failover
-- Daily database backups
-- Geographic redundancy
-
-### 9.4 Accessibility
-
-- WCAG 2.1 AA compliance
-- Screen reader support
-- Keyboard navigation
-- Color contrast ratios
-
----
-
-## 10. Success Metrics
-
-### 10.1 Customer App KPIs
+### 12.1 Customer App KPIs
 
 | Metric | Target |
 |--------|--------|
-| Daily Active Users (DAU) | 50,000+ |
-| Posts per User per Week | 2+ |
+| DAU | 50,000+ |
+| Posts/User/Week | 2+ |
 | Deal Redemption Rate | 15%+ |
 | 7-Day Retention | 40%+ |
 | 30-Day Retention | 25%+ |
 
-### 10.2 Merchant App KPIs
+### 12.2 Merchant App KPIs
 
 | Metric | Target |
 |--------|--------|
 | Active Restaurants | 5,000+ |
-| Deals Created per Restaurant/Month | 4+ |
-| Average Redemptions per Deal | 50+ |
-| Merchant Churn Rate | < 5% |
+| Deals/Restaurant/Month | 4+ |
+| Avg Redemptions/Deal | 50+ |
+| Merchant Churn | <5% |
 
-### 10.3 Platform KPIs
+### 12.3 Platform KPIs
 
 | Metric | Target |
 |--------|--------|
-| Gross Merchandise Value (GMV) | $10M+/month |
+| GMV | $10M+/month |
 | Take Rate | 10-15% |
-| Content Moderation Accuracy | 95%+ |
-| Support Resolution Time | < 24 hours |
+| Moderation Accuracy | 95%+ |
+| Support Resolution | <24h |
 
 ---
 
-## 11. Roadmap
+## 13. Appendix
 
-### Phase 1: MVP (Current)
-- ✅ Core feed and discovery
-- ✅ Deal creation and redemption
-- ✅ Basic gamification (points, streaks)
-- ✅ User authentication
-- ✅ Admin moderation tools
+### A. Role Access Matrix
 
-### Phase 2: Growth
-- 🔲 Push notifications
-- 🔲 AI-powered recommendations
-- 🔲 Advanced analytics dashboards
-- 🔲 Referral program v2
-- 🔲 Multi-language support
+| Feature | User | Restaurant | Admin |
+|---------|------|------------|-------|
+| View feed | ✅ | ❌ | ❌ |
+| Create posts | ✅ | ❌ | ❌ |
+| Claim deals | ✅ | ❌ | ❌ |
+| Create deals | ❌ | ✅ | ✅ |
+| View analytics | ❌ | ✅ | ✅ |
+| Moderate content | ❌ | ❌ | ✅ |
+| Manage users | ❌ | ❌ | ✅ |
 
-### Phase 3: Expansion
-- 🔲 Native mobile apps (React Native)
-- 🔲 Delivery integration
-- 🔲 Reservation system
-- 🔲 Corporate accounts
-- 🔲 Franchise management
+### B. API Rate Limits
 
-### Phase 4: Enterprise
-- 🔲 White-label solution
-- 🔲 API marketplace
-- 🔲 Advanced fraud ML models
-- 🔲 Multi-region deployment
-
----
-
-## 12. Appendix
-
-### A. Deployment URLs
-
-| App | Staging | Production |
-|-----|---------|------------|
-| Customer | customer-staging.snapdish.app | customer.snapdish.app |
-| Merchant | merchant-staging.snapdish.app | merchant.snapdish.app |
-| Admin | admin-staging.snapdish.app | admin.snapdish.app |
-
-### B. Environment Variables
-
-```
-VITE_SUPABASE_URL=https://[project-id].supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=[anon-key]
-```
+| Endpoint | Limit |
+|----------|-------|
+| Feed | 100/min |
+| Post creation | 10/hour |
+| Deal claims | 20/hour |
+| Search | 60/min |
 
 ### C. Related Documentation
 
 - `docs/APP_SPLIT_GUIDE.md` - Multi-app architecture
-- `docs/CUSTOMER_APP_CODE.md` - Customer app implementation
-- `docs/MERCHANT_APP_CODE.md` - Merchant app implementation
-- `docs/ADMIN_APP_CODE.md` - Admin app implementation
-- `docs/SHARED_SUPABASE_FILES.md` - Shared backend code
+- `docs/CUSTOMER_APP_CODE.md` - Customer app code
+- `docs/MERCHANT_APP_CODE.md` - Merchant app code
+- `docs/ADMIN_APP_CODE.md` - Admin app code
+- `docs/SHARED_SUPABASE_FILES.md` - Shared backend
 
 ---
 
-*Document maintained by SnapDish Product Team*
+*Document Version: 2.0 Comprehensive*
+*Total Pages Documented: 90+*
+*Last Review: January 2026*
